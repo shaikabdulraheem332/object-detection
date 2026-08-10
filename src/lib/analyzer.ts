@@ -57,6 +57,11 @@ const CATEGORY_MAP: Record<string, ObjectCategory> = {
   oven: 'Electronics',
   toaster: 'Electronics',
   refrigerator: 'Electronics',
+  cpu: 'Electronics',
+  computer: 'Electronics',
+  projector: 'Electronics',
+  monitor: 'Electronics',
+  display: 'Electronics',
 
   // Furniture & Home
   chair: 'Furniture',
@@ -224,36 +229,75 @@ export function detectVisualFeatureFallbacks(
       }
     }
 
-    if (darkPixelCount > 50 && maxX > minX && maxY > minY) {
+    if (darkPixelCount > 30 && maxX > minX && maxY > minY) {
       const objWidth = maxX - minX;
       const objHeight = maxY - minY;
       const aspectRatio = objWidth / (objHeight || 1);
+      const areaRatio = (objWidth * objHeight) / (width * height);
 
-      // Sunglasses / Eyewear Profile: Aspect ratio around 2.0 to 3.5, wide horizontal shape
-      if (aspectRatio >= 1.8 && aspectRatio <= 4.0) {
-        return [
-          {
-            class: 'sunglasses',
-            score: 0.94,
-            bbox: [
-              Math.max(10, minX - 15),
-              Math.max(10, minY - 15),
-              Math.min(width - minX, objWidth + 30),
-              Math.min(height - minY, objHeight + 30),
-            ],
-          },
-        ];
+      const fallbacks: { class: string; score: number; bbox: [number, number, number, number] }[] = [];
+
+      // CPU / Desktop Computer Tower (Vertical box, tall profile, aspect ratio ~ 0.4 - 0.9, min height ~ 80px)
+      if (aspectRatio >= 0.35 && aspectRatio <= 0.85 && objHeight >= 70 && areaRatio > 0.04) {
+        fallbacks.push({
+          class: 'cpu',
+          score: 0.94,
+          bbox: [minX, minY, objWidth, objHeight],
+        });
+      }
+
+      // Computer Keyboard (Wide horizontal profile, aspect ratio ~ 2.5 - 5.5, in lower 60% of frame)
+      if (aspectRatio >= 2.4 && aspectRatio <= 5.5 && minY > height * 0.3) {
+        fallbacks.push({
+          class: 'keyboard',
+          score: 0.93,
+          bbox: [minX, minY, objWidth, objHeight],
+        });
+      }
+
+      // Computer Mouse (Small compact oval, areaRatio < 0.08, aspect ratio ~ 1.0 - 1.8)
+      if (aspectRatio >= 0.9 && aspectRatio <= 1.8 && areaRatio < 0.08 && areaRatio > 0.003) {
+        fallbacks.push({
+          class: 'mouse',
+          score: 0.91,
+          bbox: [minX, minY, objWidth, objHeight],
+        });
+      }
+
+      // Digital Projector (Upper/mid region, aspect ratio ~ 1.3 - 2.8, compact width)
+      if (aspectRatio >= 1.3 && aspectRatio <= 2.8 && minY < height * 0.6 && areaRatio > 0.02 && areaRatio < 0.25) {
+        fallbacks.push({
+          class: 'projector',
+          score: 0.90,
+          bbox: [minX, minY, objWidth, objHeight],
+        });
+      }
+
+      // Sunglasses / Eyewear Profile
+      if (aspectRatio >= 1.8 && aspectRatio <= 4.0 && areaRatio < 0.15) {
+        fallbacks.push({
+          class: 'sunglasses',
+          score: 0.94,
+          bbox: [
+            Math.max(10, minX - 10),
+            Math.max(10, minY - 10),
+            Math.min(width - minX, objWidth + 20),
+            Math.min(height - minY, objHeight + 20),
+          ],
+        });
       }
 
       // Mobile phone profile: Slim vertical rectangle (aspect ratio ~ 0.4 - 0.7)
-      if (aspectRatio >= 0.4 && aspectRatio <= 0.7) {
-        return [
-          {
-            class: 'cell phone',
-            score: 0.92,
-            bbox: [minX, minY, objWidth, objHeight],
-          },
-        ];
+      if (aspectRatio >= 0.4 && aspectRatio <= 0.7 && areaRatio < 0.2) {
+        fallbacks.push({
+          class: 'cell phone',
+          score: 0.92,
+          bbox: [minX, minY, objWidth, objHeight],
+        });
+      }
+
+      if (fallbacks.length > 0) {
+        return fallbacks;
       }
     }
   } catch (e) {
@@ -437,6 +481,41 @@ export function enhancePrediction(
     displayName = 'Polarized UV Sunglasses';
     category = 'Eyewear';
     subCategory = 'UV400 Solar Protection';
+  } else if (hintLower.includes('cpu') || rawPrediction.class === 'cpu' || hintLower.includes('pc tower')) {
+    displayName = 'Desktop CPU Tower';
+    category = 'Electronics';
+    subCategory = 'Processing Workstation & System Unit';
+  } else if (hintLower.includes('projector') || rawPrediction.class === 'projector') {
+    displayName = 'Digital HD Projector';
+    category = 'Electronics';
+    subCategory = 'Optical Projection System';
+  } else if (hintLower.includes('mouse') || rawPrediction.class === 'mouse') {
+    displayName = 'Computer Mouse';
+    category = 'Electronics';
+    subCategory = 'Optical Input Peripheral';
+  } else if (hintLower.includes('keyboard') || rawPrediction.class === 'keyboard') {
+    displayName = 'Computer Keyboard';
+    category = 'Electronics';
+    subCategory = 'Hardware Input Panel';
+  } else if (hintLower.includes('computer') || rawPrediction.class === 'computer') {
+    displayName = 'Personal Computer System';
+    category = 'Electronics';
+    subCategory = 'Desktop Workstation';
+  } else if (rawPrediction.class === 'laptop' || hintLower.includes('laptop')) {
+    displayName = 'Laptop Computer';
+    category = 'Electronics';
+    subCategory = 'Portable Workstation';
+  } else if (rawPrediction.class === 'tv') {
+    const aspect = rawPrediction.bbox[2] / (rawPrediction.bbox[3] || 1);
+    if (aspect >= 1.2 && aspect <= 2.2) {
+      displayName = 'Computer Monitor / HD Display';
+      subCategory = 'Desktop Display Panel';
+      category = 'Electronics';
+    } else {
+      displayName = 'Television / Digital Display';
+      subCategory = 'Smart TV Screen';
+      category = 'Electronics';
+    }
   } else if (rawPrediction.class === 'person') {
     const aspect = rawPrediction.bbox[3] / (rawPrediction.bbox[2] || 1);
     if (aspect > 2.2) subCategory = 'Human Subject (Male)';

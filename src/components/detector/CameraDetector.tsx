@@ -116,7 +116,7 @@ export default function CameraDetector({ settings, onSaveToHistory }: CameraDete
       setCapturedImage(snapshotDataUrl);
 
       // Perform AI detection on snapshot
-      const rawPredictions = await detectObjectsInElement(canvas, settings.confidenceThreshold);
+      const rawPredictions = await detectObjectsInElement(canvas, settings.confidenceThreshold, ctx);
       const duration = Math.round(performance.now() - startTime);
       setInferenceTime(duration);
 

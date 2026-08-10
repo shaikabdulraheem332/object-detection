@@ -44,6 +44,7 @@ ${tfjsObjects && tfjsObjects.length > 0 ? `A local object detection model has al
    - If a person is present, check if they are a world leader, historical figure, or famous personality (e.g. Dr. A.P.J. Abdul Kalam, N. Chandrababu Naidu [Present CM of Andhra Pradesh], Narendra Modi [Prime Minister of India], Mahatma Gandhi, Subhas Chandra Bose, Bhagat Singh, Albert Einstein, Steve Jobs, Elon Musk, etc.). If so, state their full name!
    - If a bird is present, identify its exact species.
    - If an animal is present, identify its specific species/breed.
+   - If tech hardware is present (CPU / Desktop Tower, Computer Mouse, Keyboard, Digital Projector, Monitor, Laptop, Smartphone), identify each item precisely!
    - If an object or eyewear is present, identify its specific type.
 
 Return a JSON array of identified objects. You MUST add NEW objects with estimated absolute bounding box [x, y, width, height] in pixels if they are not in the existing list.
@@ -72,7 +73,7 @@ Respond ONLY with raw JSON array. Do not use markdown backticks \`\`\`json.
 `;
 
     const response = await ai.models.generateContent({
-      model: 'gemini-1.5-flash',
+      model: 'gemini-flash-latest',
       contents: [
         {
           role: 'user',
@@ -192,11 +193,11 @@ Respond ONLY with raw JSON array. Do not use markdown backticks \`\`\`json.
       fallbackObjects.push({
         id: 'system_msg',
         class: 'system',
-        displayName: error?.status === 429 || String(error?.message).includes('429') 
-          ? 'AI Quota Exceeded' 
+        displayName: error?.status === 429 || String(error?.message).includes('429')
+          ? 'AI Quota Exceeded'
           : String(error?.message).includes('API key') || String(error?.message).includes('API_KEY')
-          ? 'Invalid Gemini API Key'
-          : 'AI Service Unavailable',
+            ? 'Invalid Gemini API Key'
+            : 'AI Service Unavailable',
         score: 1.0,
         bbox: [20, 20, 400, 150],
         category: 'Other',
@@ -210,8 +211,8 @@ Respond ONLY with raw JSON array. Do not use markdown backticks \`\`\`json.
           primaryUses: error?.status === 429 || String(error?.message).includes('429')
             ? 'The Google Gemini AI free tier limit has been reached. Please click the Settings icon in the top header and enter your own free Gemini API key to continue!'
             : String(error?.message).includes('API key') || String(error?.message).includes('API_KEY') || String(error?.message).includes('400')
-            ? 'Your Gemini API Key appears to be invalid. Please click the Settings icon (sliders) in the top bar and paste a valid Google Gemini API key starting with "AIzaSy".'
-            : 'The AI vision service is temporarily offline. Basic local COCO model also does not support this specific item (e.g. Pen/Pencil).'
+              ? 'Your Gemini API Key appears to be invalid. Please click the Settings icon (sliders) in the top bar and paste a valid Google Gemini API key starting with "AIzaSy".'
+              : 'The AI vision service is temporarily offline. Basic local COCO model also does not support this specific item (e.g. Pen/Pencil).'
         }
       });
     }

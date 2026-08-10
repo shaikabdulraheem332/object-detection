@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useRef, useEffect } from 'react';
-import { Radio, RotateCcw, Zap, Volume2, Pause, Play, Eye, Cpu } from 'lucide-react';
+import { Radio, RotateCcw, Pause, Play, Eye, Cpu, Camera, VideoOff, AlertCircle } from 'lucide-react';
 import { detectObjectsInElement } from '@/lib/tfjs';
 import { enhancePrediction } from '@/lib/analyzer';
 import { DetectedObject, DetectionResult, DetectionSettings } from '@/lib/types';
@@ -19,6 +19,7 @@ export default function LiveStreamDetector({ settings, onSaveToHistory }: LiveSt
   const [detectedObjects, setDetectedObjects] = useState<DetectedObject[]>([]);
   const [facingMode, setFacingMode] = useState<'user' | 'environment'>('user');
   const [streamActive, setStreamActive] = useState<boolean>(false);
+  const [cameraError, setCameraError] = useState<string | null>(null);
   const [hoveredObjId, setHoveredObjId] = useState<string | null>(null);
 
   const videoRef = useRef<HTMLVideoElement>(null);
@@ -30,6 +31,7 @@ export default function LiveStreamDetector({ settings, onSaveToHistory }: LiveSt
   const isDetectingRef = useRef<boolean>(false);
 
   const startLiveStream = async () => {
+    setCameraError(null);
     try {
       if (streamRef.current) {
         streamRef.current.getTracks().forEach((track) => track.stop());
@@ -51,6 +53,7 @@ export default function LiveStreamDetector({ settings, onSaveToHistory }: LiveSt
       }
     } catch (err) {
       console.warn('Live camera stream unavailable. Falling back to video synthesis mode.', err);
+      setCameraError('Hardware camera unavailable or permission denied. Simulated AI Workstation mode active.');
       setStreamActive(false);
     }
   };
@@ -78,7 +81,7 @@ export default function LiveStreamDetector({ settings, onSaveToHistory }: LiveSt
       const video = videoRef.current;
       const canvas = canvasRef.current;
 
-      if (video && canvas && video.readyState >= 2 && !isDetectingRef.current) {
+      if (canvas && !isDetectingRef.current) {
         isDetectingRef.current = true;
         const now = performance.now();
 
@@ -90,16 +93,23 @@ export default function LiveStreamDetector({ settings, onSaveToHistory }: LiveSt
           lastTimeRef.current = now;
         }
 
-        canvas.width = video.videoWidth || 640;
-        canvas.height = video.videoHeight || 480;
+        const width = video && video.videoWidth ? video.videoWidth : 640;
+        const height = video && video.videoHeight ? video.videoHeight : 480;
+
+        canvas.width = width;
+        canvas.height = height;
 
         const ctx = canvas.getContext('2d', { willReadFrequently: true });
         if (ctx) {
-          ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+          if (streamActive && video && video.readyState >= 2) {
+            ctx.drawImage(video, 0, 0, width, height);
+          } else {
+            drawSimulatedWorkstationStream(ctx, width, height);
+          }
 
-          const rawPredictions = await detectObjectsInElement(video, settings.confidenceThreshold);
+          const rawPredictions = await detectObjectsInElement(canvas, settings.confidenceThreshold, ctx);
           const enhanced = rawPredictions.map((pred, idx) =>
-            enhancePrediction(pred, idx, ctx, canvas.width, canvas.height)
+            enhancePrediction(pred, idx, ctx, width, height)
           );
 
           setDetectedObjects(enhanced);
@@ -130,13 +140,78 @@ export default function LiveStreamDetector({ settings, onSaveToHistory }: LiveSt
         cancelAnimationFrame(animationFrameRef.current);
       }
     };
-  }, [isRunning, settings.confidenceThreshold, settings.boxColorTheme]);
+  }, [isRunning, streamActive, settings.confidenceThreshold, settings.boxColorTheme]);
+
+  const drawSimulatedWorkstationStream = (ctx: CanvasRenderingContext2D, width: number, height: number) => {
+    ctx.fillStyle = '#05070f';
+    ctx.fillRect(0, 0, width, height);
+
+    // Subtle Grid background
+    ctx.strokeStyle = '#00f3ff12';
+    ctx.lineWidth = 1;
+    for (let x = 0; x < width; x += 40) {
+      ctx.beginPath();
+      ctx.moveTo(x, 0);
+      ctx.lineTo(x, height);
+      ctx.stroke();
+    }
+    for (let y = 0; y < height; y += 40) {
+      ctx.beginPath();
+      ctx.moveTo(0, y);
+      ctx.lineTo(width, y);
+      ctx.stroke();
+    }
+
+    // 1. Desktop CPU Tower (Left side)
+    ctx.fillStyle = '#1e293b';
+    ctx.fillRect(width * 0.06, height * 0.2, width * 0.16, height * 0.58);
+    ctx.strokeStyle = '#00f3ff';
+    ctx.lineWidth = 2;
+    ctx.strokeRect(width * 0.06, height * 0.2, width * 0.16, height * 0.58);
+    ctx.fillStyle = '#00ff9d';
+    ctx.beginPath();
+    ctx.arc(width * 0.14, height * 0.26, 5, 0, Math.PI * 2);
+    ctx.fill();
+
+    // 2. Computer Monitor Display (Center)
+    ctx.fillStyle = '#0b1329';
+    ctx.fillRect(width * 0.26, height * 0.18, width * 0.46, height * 0.44);
+    ctx.strokeStyle = '#38bdf8';
+    ctx.lineWidth = 2;
+    ctx.strokeRect(width * 0.26, height * 0.18, width * 0.46, height * 0.44);
+    // Monitor Stand
+    ctx.fillStyle = '#334155';
+    ctx.fillRect(width * 0.46, height * 0.62, width * 0.06, height * 0.12);
+
+    // 3. Computer Keyboard (Bottom Center)
+    ctx.fillStyle = '#1e293b';
+    ctx.fillRect(width * 0.3, height * 0.76, width * 0.38, height * 0.15);
+    ctx.strokeStyle = '#a855f7';
+    ctx.lineWidth = 2;
+    ctx.strokeRect(width * 0.3, height * 0.76, width * 0.38, height * 0.15);
+
+    // 4. Optical Computer Mouse (Bottom Right)
+    ctx.fillStyle = '#334155';
+    ctx.beginPath();
+    ctx.ellipse(width * 0.75, height * 0.83, width * 0.035, height * 0.07, 0, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.strokeStyle = '#00f3ff';
+    ctx.stroke();
+
+    // 5. Digital Projector (Top / Ceiling mount)
+    ctx.fillStyle = '#334155';
+    ctx.fillRect(width * 0.42, height * 0.03, width * 0.16, height * 0.11);
+    ctx.strokeStyle = '#ff007f';
+    ctx.strokeRect(width * 0.42, height * 0.03, width * 0.16, height * 0.11);
+    ctx.fillStyle = '#00f3ff';
+    ctx.beginPath();
+    ctx.arc(width * 0.54, height * 0.085, 8, 0, Math.PI * 2);
+    ctx.fill();
+  };
 
   const drawBoundingBoxes = (canvas: HTMLCanvasElement, objects: DetectedObject[]) => {
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
-
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
 
     objects.forEach((obj) => {
       const [x, y, w, h] = obj.bbox;
@@ -205,12 +280,31 @@ export default function LiveStreamDetector({ settings, onSaveToHistory }: LiveSt
               </span>
             </h2>
             <p className="text-xs text-gray-400">
-              Real-time continuous multi-object identification and tracking overlay.
+              Real-time multi-object identification overlay for CPU, Mouse, Keyboard, Projector & displays.
             </p>
           </div>
         </div>
 
         <div className="flex items-center gap-2">
+          {/* Open / Toggle Camera */}
+          {!streamActive ? (
+            <button
+              onClick={startLiveStream}
+              className="flex items-center gap-2 px-4 py-2 rounded-xl bg-neon-cyan text-cyber-950 font-bold text-xs shadow-neon-cyan hover:scale-105 transition-transform"
+            >
+              <Camera className="w-4 h-4" />
+              <span>Open Camera</span>
+            </button>
+          ) : (
+            <button
+              onClick={stopLiveStream}
+              className="flex items-center gap-2 px-4 py-2 rounded-xl glass-panel text-laser-pink text-xs font-semibold border border-laser-pink/40 hover:bg-laser-pink/10"
+            >
+              <VideoOff className="w-4 h-4" />
+              <span>Stop Camera</span>
+            </button>
+          )}
+
           {/* Pause / Resume */}
           <button
             onClick={() => setIsRunning(!isRunning)}
@@ -233,11 +327,27 @@ export default function LiveStreamDetector({ settings, onSaveToHistory }: LiveSt
           <button
             onClick={() => setFacingMode((prev) => (prev === 'user' ? 'environment' : 'user'))}
             className="p-2.5 rounded-xl glass-panel-interactive text-gray-300 hover:text-neon-cyan"
+            title="Flip Camera"
           >
             <RotateCcw className="w-4 h-4" />
           </button>
         </div>
       </div>
+
+      {cameraError && (
+        <div className="flex items-center justify-between gap-2 p-4 rounded-2xl bg-neon-amber/10 border border-neon-amber/40 text-neon-amber text-xs">
+          <div className="flex items-center gap-2">
+            <AlertCircle className="w-4 h-4 shrink-0" />
+            <span>{cameraError}</span>
+          </div>
+          <button
+            onClick={startLiveStream}
+            className="px-3 py-1 bg-neon-amber/20 rounded-lg text-white hover:bg-neon-amber/30 text-xs font-bold"
+          >
+            Retry Camera
+          </button>
+        </div>
+      )}
 
       {/* Live Stream Display Viewport */}
       <div className="relative glass-panel rounded-3xl overflow-hidden border border-white/10 bg-cyber-950 flex items-center justify-center min-h-[400px] p-2 sm:p-4">
@@ -259,11 +369,11 @@ export default function LiveStreamDetector({ settings, onSaveToHistory }: LiveSt
             ref={videoRef}
             playsInline
             muted
-            className="max-h-[550px] w-auto rounded-2xl block mx-auto object-contain"
+            className={`max-h-[550px] w-auto rounded-2xl ${streamActive ? 'block' : 'hidden'} mx-auto object-contain`}
           />
           <canvas
             ref={canvasRef}
-            className="absolute inset-0 w-full h-full pointer-events-none rounded-2xl"
+            className="relative inset-0 w-full h-full rounded-2xl block"
           />
         </div>
       </div>

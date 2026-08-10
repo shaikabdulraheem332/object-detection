@@ -5,23 +5,6 @@ const KNOWLEDGE_DATABASE: Record<string, AIKnowledgeExplanation> = {
   // ─────────────────────────────────────────────
   // WORLD HISTORICAL FIGURES (Old to New)
   // ─────────────────────────────────────────────
-  'narendra modi': {
-    scientificOrTechName: 'Narendra Damodardas Modi – Prime Minister of India',
-    primaryUses: '14th and current Prime Minister of India since 2014. Former Chief Minister of Gujarat. Leader of the Bharatiya Janata Party (BJP).',
-    specifications: [
-      'Period in Office: 2014–Present',
-      'Political Party: Bharatiya Janata Party (BJP)',
-      'Major Initiatives: Digital India, Swachh Bharat Abhiyan, Make in India',
-    ],
-    keyFeatures: [
-      'First Prime Minister of India born after the country\'s independence',
-      'Implemented nationwide initiatives like GST and UPI digital payments',
-    ],
-    humanDetails: 'Indian politician serving as the 14th Prime Minister of India. Known for his communication skills and large public rallies.',
-    safetyAndLegalStatus: 'National Leader: Current Prime Minister of the world\'s largest democracy.',
-    funFact: 'Modi is the second most followed politician in the world on social media platforms!',
-  },
-
   'wristwatch': {
     scientificOrTechName: 'Wristwatch — Portable Personal Timekeeping Accessory',
     primaryUses: 'Worn on the wrist for personal timekeeping. Modern smartwatches add health monitoring (heart rate, ECG, SpO2), GPS navigation, notifications, and mobile payments.',
@@ -3166,6 +3149,107 @@ const KNOWLEDGE_DATABASE: Record<string, AIKnowledgeExplanation> = {
     humanDetails: 'Over 170 million laptops sold globally per year. Essential tool for modern work and education.',
     safetyAndLegalStatus: 'Consumer electronics. Complies with international FCC, CE, and BIS safety standards.',
     funFact: 'The first laptop, the Osborne 1 (1981), weighed 11kg (24 lbs), cost $1,795, and had a 5-inch screen — yet was considered revolutionary for being "portable"!',
+  },
+
+  'cpu': {
+    scientificOrTechName: 'Central Processing Unit & Desktop System Tower (CPU Workstation)',
+    primaryUses: 'Core computational unit of desktop computers executing arithmetic, logic, control, and I/O instructions. Houses CPU, GPU, motherboard, RAM, and power supply.',
+    specifications: [
+      'Architectures: x86-64 (Intel Core i9/Xeon, AMD Ryzen/EPYC), ARM64',
+      'Clock speeds up to 6.0 GHz with multi-core parallelism (up to 96 cores)',
+      'High-throughput PCIe 5.0 bus for dedicated GPU AI acceleration',
+    ],
+    keyFeatures: [
+      'Executes billions of floating-point operations per second (FLOPS) for real-time AI & 3D rendering',
+      'Liquid or high-surface area heat-pipe active thermal dissipation system',
+    ],
+    humanDetails: 'Central brain of personal computers and AI workstations worldwide.',
+    safetyAndLegalStatus: 'Electronics consumer hardware. FCC, CE, and RoHS compliant.',
+    funFact: 'A modern desktop CPU chip contains over 80 billion transistors, with individual logic gates etched at just 3 nanometers — 20,000 times thinner than a human hair!',
+  },
+
+  'computer': {
+    scientificOrTechName: 'Personal Desktop Computer & Workstation System',
+    primaryUses: 'High-performance computing, software development, AI model execution, graphic processing, and administrative office operations.',
+    specifications: [
+      'Components: Motherboard, Multi-Core Processor, Dedicated Graphics Processing Unit (GPU), NVMe SSD Storage, DDR5 RAM',
+      'Operating Systems: Windows 11, macOS, Linux (Ubuntu/Debian)',
+    ],
+    keyFeatures: [
+      'Modular expandable hardware architecture',
+      'Supports high-bandwidth peripheral connectivity (USB 4, Thunderbolt 4, DisplayPort 2.1)',
+    ],
+    humanDetails: 'Essential computing foundation for modern digital infrastructure and human productivity.',
+    safetyAndLegalStatus: 'Regulated electronic equipment. Certified under international EMC & safety standards.',
+    funFact: 'The ENIAC (1945), the first general-purpose electronic computer, weighed 30 tons and occupied 1,800 square feet — today\'s average smartphone is millions of times faster!',
+  },
+
+  'mouse': {
+    scientificOrTechName: 'Optical / Laser Computer Mouse (Input Peripheral)',
+    primaryUses: 'Precision point-and-click graphical user interface (GUI) navigation, CAD design, gaming, and interactive computer control.',
+    specifications: [
+      'Sensor: High-precision optical or laser tracking (up to 30,000 DPI/CPI)',
+      'Polling Rate: 1,000Hz to 8,000Hz response rate (0.125ms latency)',
+      'Connectivity: Wireless 2.4GHz ultra-low latency, Bluetooth 5.3, or braided USB-C',
+    ],
+    keyFeatures: [
+      'Uses tiny LED/laser camera taking thousands of surface photos per second to calculate motion vectors',
+      'Ergonomic contouring reduces carpal tunnel strain during extended computing sessions',
+    ],
+    humanDetails: 'Invented by Douglas Engelbart in 1964 at Stanford Research Institute.',
+    safetyAndLegalStatus: 'Class 1 eye-safe laser/LED peripheral device. FCC & CE approved.',
+    funFact: 'The very first computer mouse invented in 1964 was carved out of a single block of wood and had two perpendicular metal wheels inside!',
+  },
+
+  'keyboard': {
+    scientificOrTechName: 'Computer Keyboard (Hardware Alphanumeric Input Device)',
+    primaryUses: 'Text input, programming, command execution, hotkey navigation, and interactive gaming control.',
+    specifications: [
+      'Switch Mechanisms: Mechanical (Linear, Tactile, Clicky), Membrane, Optical-Mechanical, Capacitive',
+      'Layout Standards: QWERTY, AZERTY, DVORAK, Colemak (ANSI/ISO form factors)',
+      'Keycap Material: Double-shot PBT or ABS plastic with RGB LED backlighting',
+    ],
+    keyFeatures: [
+      'N-Key Rollover (NKRO) allows simultaneous matrix keypress detection without ghosting',
+      'Hot-swappable PCB sockets enable custom mechanical switch customization',
+    ],
+    humanDetails: 'Standard primary text interface between humans and computer operating systems.',
+    safetyAndLegalStatus: 'Consumer electronic peripheral. Low-voltage DC powered.',
+    funFact: 'The QWERTY keyboard layout was designed in 1873 for mechanical typewriters to intentionally slow typists down so physical typewriter arms wouldn\'t jam together!',
+  },
+
+  'projector': {
+    scientificOrTechName: 'Digital HD / Laser Video Projector (Optical Display System)',
+    primaryUses: 'Large-screen image projection for presentations, cinema, live events, gaming, and classroom instruction.',
+    specifications: [
+      'Light Engine: Laser Phosphor, RGB Triple Laser, LED, or High-Efficiency Lamp',
+      'Display Technologies: DLP (Digital Light Processing), 3LCD, LCoS',
+      'Resolution & Brightness: 4K UHD / 1080p output with 2,000 to 10,000+ ANSI Lumens',
+    ],
+    keyFeatures: [
+      'Projects images up to 300+ inches on walls or projection screens',
+      'Keystone correction and optical lens shift allow distortion-free projection at acute angles',
+    ],
+    humanDetails: 'Used globally in conference rooms, home theaters, auditoriums, and educational institutions.',
+    safetyAndLegalStatus: 'Laser Safety Class 2/3R. Avoid looking directly into the lens light beam.',
+    funFact: 'Modern DLP projectors use a microchip containing up to 8.3 million microscopic mirrors, each tilting back and forth over 5,000 times per second to create the picture!',
+  },
+
+  'monitor': {
+    scientificOrTechName: 'High-Definition Computer Monitor Display Screen',
+    primaryUses: 'Visual output display for computers, video editing consoles, gaming setups, and professional graphic design workstations.',
+    specifications: [
+      'Panel Tech: IPS, OLED, QD-OLED, VA (1080p, 1440p, 4K UHD resolutions)',
+      'Refresh Rates: 60Hz up to 360Hz with NVIDIA G-Sync / AMD FreeSync VRR',
+      'Color Gamut: 99% DCI-P3 / sRGB color calibration',
+    ],
+    keyFeatures: [
+      'Ultra-thin bezel design with HDR1000 dynamic peak brightness',
+      'Eye-care technology with flicker-free DC dimming and low blue light filter',
+    ],
+    humanDetails: 'Primary visual display window for desktop computing users.',
+    safetyAndLegalStatus: 'Consumer electronics display. Certified Energy Star and TÜV Rheinland eye-comfort.',
+    funFact: 'OLED monitors emit light individually from every single sub-pixel, giving them an "infinite" contrast ratio by turning black pixels completely OFF!',
   },
 
   'bird': {
