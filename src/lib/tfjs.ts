@@ -40,8 +40,8 @@ export async function detectObjectsInElement(
     // If standard COCO-SSD model returns no detection or missed fine-grained items,
     // execute visual feature fallback detection on canvas context if available!
     if (formatted.length === 0 && ctx) {
-      const width = (element as HTMLCanvasElement).width || 640;
-      const height = (element as HTMLCanvasElement).height || 480;
+      const width = ctx.canvas?.width || (element as HTMLImageElement).naturalWidth || 640;
+      const height = ctx.canvas?.height || (element as HTMLImageElement).naturalHeight || 480;
       const featureDetections = detectVisualFeatureFallbacks(ctx, width, height);
       if (featureDetections.length > 0) {
         return featureDetections;
@@ -52,8 +52,8 @@ export async function detectObjectsInElement(
   } catch (err) {
     console.warn('TensorFlow.js model inference fallback triggered:', err);
     if (ctx) {
-      const width = (element as HTMLCanvasElement).width || 640;
-      const height = (element as HTMLCanvasElement).height || 480;
+      const width = ctx.canvas?.width || (element as HTMLImageElement).naturalWidth || 640;
+      const height = ctx.canvas?.height || (element as HTMLImageElement).naturalHeight || 480;
       return detectVisualFeatureFallbacks(ctx, width, height);
     }
     return [];

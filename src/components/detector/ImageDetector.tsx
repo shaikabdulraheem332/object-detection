@@ -51,6 +51,7 @@ export default function ImageDetector({ settings, onSaveToHistory }: ImageDetect
       return;
     }
 
+    setSelectedSampleHint(null);
     setErrorMsg(null);
     const reader = new FileReader();
     reader.onload = (e) => {
@@ -65,6 +66,7 @@ export default function ImageDetector({ settings, onSaveToHistory }: ImageDetect
   const handleDrop = (e: React.DragEvent) => {
     e.preventDefault();
     setDragActive(false);
+    setSelectedSampleHint(null);
     if (e.dataTransfer.files && e.dataTransfer.files[0]) {
       handleFileUpload(e.dataTransfer.files[0]);
     }
@@ -245,6 +247,7 @@ export default function ImageDetector({ settings, onSaveToHistory }: ImageDetect
           <button
             onClick={() => {
               setImageSrc(null);
+              setSelectedSampleHint(null);
               setDetectedObjects([]);
             }}
             className="flex items-center gap-2 px-4 py-2 rounded-xl glass-panel-interactive text-xs font-semibold text-gray-300 hover:text-white"
