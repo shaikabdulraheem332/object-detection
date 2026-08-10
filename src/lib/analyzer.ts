@@ -324,15 +324,6 @@ export function detectVisualFeatureFallbacks(
         });
       }
 
-      // Toy Horse / Rocking Horse / Kiddie Ride (Play structure or ride-on toy, areaRatio > 0.12)
-      if (aspectRatio >= 0.5 && aspectRatio <= 2.5 && areaRatio >= 0.12) {
-        fallbacks.push({
-          class: 'rocking horse',
-          score: 0.95,
-          bbox: [minX, Math.max(0, minY + Math.floor(objHeight * 0.15)), objWidth, Math.floor(objHeight * 0.85)],
-        });
-      }
-
       if (fallbacks.length > 0) {
         return fallbacks;
       }

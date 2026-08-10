@@ -364,16 +364,16 @@ export default function LiveStreamDetector({ settings, onSaveToHistory }: LiveSt
           </div>
         </div>
 
-        <div className="relative inline-block max-w-full">
+        <div className="relative w-full flex items-center justify-center">
           <video
             ref={videoRef}
             playsInline
             muted
-            className={`max-h-[550px] w-auto rounded-2xl ${streamActive ? 'block' : 'hidden'} mx-auto object-contain`}
+            className="hidden"
           />
           <canvas
             ref={canvasRef}
-            className="relative inset-0 w-full h-full rounded-2xl block"
+            className="w-full max-h-[550px] object-contain rounded-2xl block mx-auto shadow-2xl border border-white/10"
           />
         </div>
       </div>
