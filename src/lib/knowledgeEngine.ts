@@ -3252,6 +3252,71 @@ const KNOWLEDGE_DATABASE: Record<string, AIKnowledgeExplanation> = {
     funFact: 'OLED monitors emit light individually from every single sub-pixel, giving them an "infinite" contrast ratio by turning black pixels completely OFF!',
   },
 
+  'tablets': {
+    scientificOrTechName: 'Pharmaceutical Medicine Tablets & Pill Blister Strip',
+    primaryUses: 'Oral solid dosage form of active pharmaceutical ingredients (APIs) formulated for therapeutic treatment, disease management, pain relief, or health maintenance.',
+    specifications: [
+      'Packaging Type: Aluminum / PVC Blister Pack or Push-Through Foil Packaging',
+      'Dosage Form: Film-Coated, Sustained Release (SR/PR), or Chewable Tablets',
+      'Quality Standards: Pharmacopoeia Compliance (IP, BP, USP)',
+    ],
+    keyFeatures: [
+      'Hermetically sealed foil cavities protect active medicine from moisture, light, and air oxidation',
+      'Clear dosage markings, batch number, manufacturing date, and expiry date printed on reverse foil',
+    ],
+    humanDetails: 'Essential healthcare product. Always take under medical prescription or healthcare practitioner guidance.',
+    safetyAndLegalStatus: 'Prescription / OTC Drug Regulation: Schedule H / Schedule G warning applies. Keep out of reach of children.',
+    funFact: 'The word "pill" comes from the Latin "pilula" meaning "little ball" — ancient Egyptians made the first pills over 3,500 years ago using clay, bread dough, and honey!',
+  },
+
+  'medicine': {
+    scientificOrTechName: 'Pharmaceutical Healthcare Product — Therapeutic Medication',
+    primaryUses: 'Treatment of medical conditions, symptom alleviation, infection control, metabolic regulation, and health prevention.',
+    specifications: [
+      'Active Ingredients: Formulated chemical or biological therapeutic agents',
+      'Storage Condition: Cool dry place below 30°C away from direct sunlight',
+    ],
+    keyFeatures: [
+      'Standardized dosage form ensuring consistent bioavailability and therapeutic efficacy',
+      'Rigorous clinical trial validation for efficacy and safety profile',
+    ],
+    humanDetails: 'Crucial component of modern medical science and global public health.',
+    safetyAndLegalStatus: 'Regulated by FDA / CDSCO / EMA health authorities. Strictly follow prescribed dosage schedule.',
+    funFact: 'Aspirin (acetylsalicylic acid), one of the world\'s most popular medicines, originated from willow tree bark used by Hippocrates in ancient Greece (400 BC) for fever and pain relief!',
+  },
+
+  'rocking horse': {
+    scientificOrTechName: 'Child Ride-On Toy — Rocking / Carousel Horse Structure',
+    primaryUses: 'Children\'s play equipment, balance development, sensory integration, and amusement ride.',
+    specifications: [
+      'Structure Material: Molded Polymer Plastic, Fiberglass, Wood, or Alloy Frame',
+      'Safety Features: Ergonomic hand grips, low center of gravity, non-slip base',
+    ],
+    keyFeatures: [
+      'Promotes balance, motor coordination, and imaginative play in young children',
+      'Durable weather-resistant construction designed for indoor and outdoor play parks',
+    ],
+    humanDetails: 'Classic children\'s play toy popular worldwide since the 17th century.',
+    safetyAndLegalStatus: 'Child Safety Standard: Complies with ASTM F963 / EN71 toy safety regulations.',
+    funFact: 'Rocking horses first appeared in Europe in the early 17th century — King Charles I of England owned a famous wooden rocking horse carved in 1610!',
+  },
+
+  'toy': {
+    scientificOrTechName: 'Children\'s Play & Entertainment Object — Toy',
+    primaryUses: 'Recreation, cognitive development, motor skill enhancement, and imaginative play.',
+    specifications: [
+      'Categories: Ride-on toys, Plush animals, Educational puzzles, Figurines, Action sets',
+      'Materials: Non-toxic BPA-free plastic, fabric, wood, or lightweight alloy',
+    ],
+    keyFeatures: [
+      'Encourages sensory exploration, problem-solving, and emotional development',
+      'Designed to strict child safety and non-toxic paint standards',
+    ],
+    humanDetails: 'Essential part of childhood growth, learning, and physical play.',
+    safetyAndLegalStatus: 'Consumer Product Safety Commission (CPSC) / BIS toy safety certified.',
+    funFact: 'The oldest known toy in the world is a 4,000-year-old stone doll discovered in Italy, complete with little carved clay furniture!',
+  },
+
   'bird': {
     scientificOrTechName: 'Aves (Avian Wildlife) — Feathered Vertebrate Species',
     primaryUses: 'Ecological role in seed dispersal, insect pest control, pollination, and as bio-indicators of environmental health. ~10,000 species worldwide.',
@@ -3383,6 +3448,38 @@ function generateGenericKnowledge(displayName: string, category: ObjectCategory)
         humanDetails: 'Human subject detected. Configure Gemini API key in .env.local for precise person identification.',
         safetyAndLegalStatus: 'Human Rights Protected: Universal Declaration of Human Rights applies.',
         funFact: 'The human brain generates about 23 watts of electrical power — enough to power a dim light bulb!',
+      };
+
+    case 'Medical':
+      return {
+        scientificOrTechName: `${displayName} — Pharmaceutical Medical Item`,
+        primaryUses: 'Therapeutic treatment, health management, oral dosage medication, or medical diagnostics.',
+        specifications: [
+          'Classification: Pharmaceutical Solid Oral Dosage Form / Blister Strip',
+          'Complies with pharmacopoeial quality and safety standards (IP / USP)',
+        ],
+        keyFeatures: [
+          'Formulated for controlled therapeutic delivery and patient safety',
+          'Hermetically sealed packaging ensures drug stability and contamination barrier',
+        ],
+        safetyAndLegalStatus: 'Regulated medical / pharmaceutical product. Consult registered physician or pharmacist before use.',
+        funFact: 'Penicillin, the first modern antibiotic discovered by Alexander Fleming in 1928, saved over 200 million human lives in its first 75 years!',
+      };
+
+    case 'Toy':
+      return {
+        scientificOrTechName: `${displayName} — Children's Play Object & Amusement Item`,
+        primaryUses: 'Recreation, physical motor coordination, cognitive development, and creative play.',
+        specifications: [
+          'Category: Children\'s Toy & Amusement Equipment',
+          'Material: Non-toxic polymer plastic, fabric, wood, or lightweight metal structure',
+        ],
+        keyFeatures: [
+          'Designed for child safety, durability, and ergonomic engagement',
+          'Promotes balance, sensory learning, and physical play',
+        ],
+        safetyAndLegalStatus: 'Complies with international toy safety standards (EN71 / ASTM F963).',
+        funFact: 'Lego bricks made in 1958 will still interlock perfectly with Lego bricks made today — that\'s over 65 years of 0.002mm manufacturing precision!',
       };
 
     case 'Animal':

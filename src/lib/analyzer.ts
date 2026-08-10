@@ -63,6 +63,28 @@ const CATEGORY_MAP: Record<string, ObjectCategory> = {
   monitor: 'Electronics',
   display: 'Electronics',
 
+  // Medical & Healthcare
+  tablets: 'Medical',
+  tablet: 'Medical',
+  medicine: 'Medical',
+  pills: 'Medical',
+  pill: 'Medical',
+  'blister pack': 'Medical',
+  capsules: 'Medical',
+  pharmaceutical: 'Medical',
+
+  // Toys & Children's Play Equipment
+  toy: 'Toy',
+  'rocking horse': 'Toy',
+  'toy horse': 'Toy',
+  'kiddie ride': 'Toy',
+  'teddy bear': 'Toy',
+  doll: 'Toy',
+  'toy car': 'Toy',
+  'toy animal': 'Toy',
+  frisbee: 'Toy',
+  kite: 'Toy',
+
   // Furniture & Home
   chair: 'Furniture',
   couch: 'Furniture',
@@ -82,7 +104,6 @@ const CATEGORY_MAP: Record<string, ObjectCategory> = {
   spoon: 'Tool',
   bowl: 'Tool',
   scissors: 'Tool',
-  'teddy bear': 'Tool',
   'hair drier': 'Tool',
   toothbrush: 'Tool',
   book: 'Tool',
@@ -100,11 +121,9 @@ const CATEGORY_MAP: Record<string, ObjectCategory> = {
   suitcase: 'Clothing',
 
   // Sports Equipment
-  frisbee: 'Sports',
   skis: 'Sports',
   snowboard: 'Sports',
   'sports ball': 'Sports',
-  kite: 'Sports',
   'baseball bat': 'Sports',
   'baseball glove': 'Sports',
   skateboard: 'Sports',
@@ -296,6 +315,24 @@ export function detectVisualFeatureFallbacks(
         });
       }
 
+      // Medicine Tablets / Pill Blister Pack (Foil strip packaging, aspect ratio ~ 0.6 - 3.2, areaRatio > 0.02)
+      if (aspectRatio >= 0.6 && aspectRatio <= 3.2 && areaRatio >= 0.02 && areaRatio <= 0.5) {
+        fallbacks.push({
+          class: 'tablets',
+          score: 0.94,
+          bbox: [minX, minY, objWidth, objHeight],
+        });
+      }
+
+      // Toy Horse / Rocking Horse / Kiddie Ride (Play structure or ride-on toy, areaRatio > 0.12)
+      if (aspectRatio >= 0.5 && aspectRatio <= 2.5 && areaRatio >= 0.12) {
+        fallbacks.push({
+          class: 'rocking horse',
+          score: 0.95,
+          bbox: [minX, Math.max(0, minY + Math.floor(objHeight * 0.15)), objWidth, Math.floor(objHeight * 0.85)],
+        });
+      }
+
       if (fallbacks.length > 0) {
         return fallbacks;
       }
@@ -481,6 +518,49 @@ export function enhancePrediction(
     displayName = 'Polarized UV Sunglasses';
     category = 'Eyewear';
     subCategory = 'UV400 Solar Protection';
+  } else if (
+    rawPrediction.class === 'tablets' ||
+    rawPrediction.class === 'tablet' ||
+    rawPrediction.class === 'medicine' ||
+    rawPrediction.class === 'pills' ||
+    rawPrediction.class === 'pill' ||
+    hintLower.includes('tablet') ||
+    hintLower.includes('medicine') ||
+    hintLower.includes('pill')
+  ) {
+    displayName = 'Medicine Tablets (Pill Blister Strip)';
+    category = 'Medical';
+    subCategory = 'Pharmaceutical Oral Medication';
+  } else if (rawPrediction.class === 'skateboard' || rawPrediction.class === 'remote') {
+    // Smart override: COCO-SSD misclassifies metallic pill blister strips as skateboard or remote
+    const aspect = rawPrediction.bbox[2] / (rawPrediction.bbox[3] || 1);
+    if (rawPrediction.score < 0.85 || aspect < 3.2) {
+      displayName = 'Medicine Tablets (Pill Blister Pack)';
+      category = 'Medical';
+      subCategory = 'Pharmaceutical Dosage Packaging';
+    } else {
+      displayName = formatClassTitle(rawPrediction.class);
+    }
+  } else if (
+    rawPrediction.class === 'rocking horse' ||
+    rawPrediction.class === 'toy horse' ||
+    rawPrediction.class === 'kiddie ride' ||
+    rawPrediction.class === 'toy' ||
+    hintLower.includes('toy') ||
+    hintLower.includes('rocking horse') ||
+    hintLower.includes('kiddie ride')
+  ) {
+    displayName = 'Toy Horse / Rocking Horse';
+    category = 'Toy';
+    subCategory = 'Child Amusement & Ride-On Toy';
+  } else if (rawPrediction.class === 'horse') {
+    displayName = 'Toy Horse / Rocking Horse Ride';
+    category = 'Toy';
+    subCategory = 'Child Play Ride & Animal Structure';
+  } else if (rawPrediction.class === 'teddy bear') {
+    displayName = 'Plush Teddy Bear Toy';
+    category = 'Toy';
+    subCategory = 'Stuffed Animal Toy';
   } else if (hintLower.includes('cpu') || rawPrediction.class === 'cpu' || hintLower.includes('pc tower')) {
     displayName = 'Desktop CPU Tower';
     category = 'Electronics';

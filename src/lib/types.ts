@@ -14,6 +14,8 @@ export type ObjectCategory =
   | 'Landmark'
   | 'Building'
   | 'Weapon'
+  | 'Medical'
+  | 'Toy'
   | 'Other';
 
 export interface PersonProfile {

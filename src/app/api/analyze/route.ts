@@ -45,6 +45,8 @@ ${tfjsObjects && tfjsObjects.length > 0 ? `A local object detection model has al
    - If a bird is present, identify its exact species.
    - If an animal is present, identify its specific species/breed.
    - If tech hardware is present (CPU / Desktop Tower, Computer Mouse, Keyboard, Digital Projector, Monitor, Laptop, Smartphone), identify each item precisely!
+   - If medical items, tablets, pills, or blister strips are present (e.g. Metformin, Paracetamol, Aspirin, Antibiotics, Vitamin tablets, Blister foil strips), identify them as Medicine Tablets / Blister Strip and read any visible medicine name or dosage!
+   - If toys, rocking horses, toy animals, kiddie rides, dolls, or play equipment are present in the image (especially when a child is riding or playing with them), identify each toy precisely as Toy / Rocking Horse / Kiddie Ride!
    - If an object or eyewear is present, identify its specific type.
 
 Return a JSON array of identified objects. You MUST add NEW objects with estimated absolute bounding box [x, y, width, height] in pixels if they are not in the existing list.
@@ -52,9 +54,9 @@ Each item in the returned array MUST strictly follow this JSON schema:
 [
   {
     "id": "MUST MATCH the id of the existing object from the list above, or create a new unique id like 'gemini_obj_1' if you found something new",
-    "displayName": "Concise, specific name (MAX 3-5 WORDS). Examples: 'Narendra Modi', 'Indian Peacock', 'Mini Projector', 'Whiteboard'. DO NOT write long descriptions here!",
-    "subCategory": "Descriptive category (e.g. 'Famous Leader & Scientist', 'Chief Minister of AP', 'Prime Minister of India', 'Avian Species', 'Apex Predator', 'Polarized Eyewear', 'Smartphone')",
-    "category": "One of: 'Human', 'Animal', 'Vehicle', 'Electronics', 'Eyewear', 'Food', 'Clothing', 'Plant', 'Tool', 'Outdoor', 'Furniture', 'Sports', 'Other'",
+    "displayName": "Concise, specific name (MAX 3-5 WORDS). Examples: 'Medicine Tablets', 'Metformin Tablets IP', 'Rocking Horse Ride', 'Mini Projector'. DO NOT write long descriptions here!",
+    "subCategory": "Descriptive category (e.g. 'Pharmaceutical Medication', 'Pill Blister Strip', 'Child Ride-On Toy', 'Famous Leader & Scientist', 'Avian Species', 'Smartphone')",
+    "category": "One of: 'Human', 'Animal', 'Vehicle', 'Electronics', 'Eyewear', 'Food', 'Clothing', 'Plant', 'Tool', 'Outdoor', 'Furniture', 'Sports', 'Medical', 'Toy', 'Other'",
     "score": 0.98,
     "bbox": [x, y, width, height],
     "knowledge": {
