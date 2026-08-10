@@ -62,6 +62,11 @@ const CATEGORY_MAP: Record<string, ObjectCategory> = {
   projector: 'Electronics',
   monitor: 'Electronics',
   display: 'Electronics',
+  headset: 'Electronics',
+  headphones: 'Electronics',
+  headphone: 'Electronics',
+  earphones: 'Electronics',
+  earbuds: 'Electronics',
 
   // Medical & Healthcare
   tablets: 'Medical',
@@ -560,10 +565,33 @@ export function enhancePrediction(
     displayName = 'Digital HD Projector';
     category = 'Electronics';
     subCategory = 'Optical Projection System';
-  } else if (hintLower.includes('mouse') || rawPrediction.class === 'mouse') {
-    displayName = 'Computer Mouse';
+  } else if (
+    rawPrediction.class === 'headset' ||
+    rawPrediction.class === 'headphones' ||
+    rawPrediction.class === 'headphone' ||
+    rawPrediction.class === 'earphones' ||
+    rawPrediction.class === 'earbuds' ||
+    hintLower.includes('headset') ||
+    hintLower.includes('headphone') ||
+    hintLower.includes('earphone')
+  ) {
+    displayName = 'Over-Ear Audio Headset (Headphones)';
     category = 'Electronics';
-    subCategory = 'Optical Input Peripheral';
+    subCategory = 'Acoustic Audio Peripheral';
+  } else if (hintLower.includes('mouse') || rawPrediction.class === 'mouse') {
+    // COCO-SSD misclassifies headphone earcup cushions as mouse. Check aspect ratio and area.
+    const [, , w, h] = rawPrediction.bbox;
+    const aspect = h / (w || 1);
+    const boxAreaRatio = (w * h) / ((frameWidth * frameHeight) || 1);
+    if (aspect > 1.35 || boxAreaRatio > 0.06) {
+      displayName = 'Over-Ear Audio Headset (Headphones)';
+      category = 'Electronics';
+      subCategory = 'Acoustic Audio Peripheral';
+    } else {
+      displayName = 'Computer Mouse';
+      category = 'Electronics';
+      subCategory = 'Optical Input Peripheral';
+    }
   } else if (hintLower.includes('keyboard') || rawPrediction.class === 'keyboard') {
     displayName = 'Computer Keyboard';
     category = 'Electronics';

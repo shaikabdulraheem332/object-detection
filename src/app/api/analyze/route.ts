@@ -44,7 +44,7 @@ ${tfjsObjects && tfjsObjects.length > 0 ? `A local object detection model has al
    - If a person is present, check if they are a world leader, historical figure, or famous personality (e.g. Dr. A.P.J. Abdul Kalam, N. Chandrababu Naidu [Present CM of Andhra Pradesh], Narendra Modi [Prime Minister of India], Mahatma Gandhi, Subhas Chandra Bose, Bhagat Singh, Albert Einstein, Steve Jobs, Elon Musk, etc.). If so, state their full name!
    - If a bird is present, identify its exact species.
    - If an animal is present, identify its specific species/breed.
-   - If tech hardware is present (CPU / Desktop Tower, Computer Mouse, Keyboard, Digital Projector, Monitor, Laptop, Smartphone), identify each item precisely!
+   - If tech hardware or audio peripherals are present (CPU / Desktop Tower, Computer Mouse, Keyboard, Headset / Headphones, Earphones, Earbuds, Digital Projector, Monitor, Laptop, Smartphone), identify each item precisely!
    - If medical items, tablets, pills, or blister strips are present (e.g. Metformin, Paracetamol, Aspirin, Antibiotics, Vitamin tablets, Blister foil strips), identify them as Medicine Tablets / Blister Strip and read any visible medicine name or dosage!
    - If toys, rocking horses, toy animals, kiddie rides, dolls, or play equipment are present in the image (especially when a child is riding or playing with them), identify each toy precisely as Toy / Rocking Horse / Kiddie Ride!
    - If an object or eyewear is present, identify its specific type.

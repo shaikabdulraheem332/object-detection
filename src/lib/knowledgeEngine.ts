@@ -3252,6 +3252,39 @@ const KNOWLEDGE_DATABASE: Record<string, AIKnowledgeExplanation> = {
     funFact: 'OLED monitors emit light individually from every single sub-pixel, giving them an "infinite" contrast ratio by turning black pixels completely OFF!',
   },
 
+  'headset': {
+    scientificOrTechName: 'Over-Ear Acoustic Audio Headset & Headphones System',
+    primaryUses: 'Personal audio listening, teleconferencing, voice communication, studio monitoring, and immersive gaming audio.',
+    specifications: [
+      'Driver Architecture: 40mm – 50mm Neodymium Dynamic Transducers',
+      'Frequency Response: 20Hz – 20,000Hz (Hi-Res Audio Certified)',
+      'Connectivity: Wireless Bluetooth 5.3 / 3.5mm Analog Audio / USB-C',
+    ],
+    keyFeatures: [
+      'Ergonomic memory foam earcup cushions provide passive acoustic noise isolation',
+      'Active Noise Cancellation (ANC) suppresses background ambient noise via dual beamforming microphones',
+    ],
+    humanDetails: 'Essential audio peripheral for communication, remote work, studio production, and entertainment.',
+    safetyAndLegalStatus: 'Consumer Electronics Safety Standard. Limit volume level to < 85 dB to prevent hearing strain.',
+    funFact: 'The first headphones were invented by Nathaniel Baldwin on his kitchen table in 1910 — the US Navy bought 100 pairs after testing his hand-made headset!',
+  },
+
+  'headphones': {
+    scientificOrTechName: 'High-Fidelity Audio Headphones System',
+    primaryUses: 'Private acoustic playback for music listening, podcasting, gaming, and professional sound editing.',
+    specifications: [
+      'Driver Size: 40mm High-Definition Dynamic Drivers',
+      'Impedance: 32 Ohms (optimized for mobile and desktop audio output)',
+    ],
+    keyFeatures: [
+      'Padded headband and breathable earpads ensure long-duration comfort',
+      'Balanced sound signature with deep bass extension and clear treble acoustics',
+    ],
+    humanDetails: 'Widely used daily audio equipment across laptops, smartphones, and audio consoles.',
+    safetyAndLegalStatus: 'CE / FCC Certified Consumer Electronics.',
+    funFact: 'Sony\'s Walkman launched in 1979 revolutionized music by making headphones portable for the very first time in human history!',
+  },
+
   'tablets': {
     scientificOrTechName: 'Pharmaceutical Medicine Tablets & Pill Blister Strip',
     primaryUses: 'Oral solid dosage form of active pharmaceutical ingredients (APIs) formulated for therapeutic treatment, disease management, pain relief, or health maintenance.',
