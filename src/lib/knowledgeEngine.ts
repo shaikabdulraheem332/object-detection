@@ -3430,6 +3430,135 @@ const KNOWLEDGE_DATABASE: Record<string, AIKnowledgeExplanation> = {
       ]
     }
   },
+
+  'moon': {
+    scientificOrTechName: 'The Moon (Earth\'s Natural Satellite — Luna)',
+    primaryUses: 'Natural satellite regulating Earth\'s axial tilt, ocean tides, night illumination, and biological rhythmic cycles of terrestrial life.',
+    specifications: [
+      'Diameter: 3,474 km (approx. 27% of Earth\'s size)',
+      'Average Distance: 384,400 km from Earth',
+      'Orbital Period: 27.3 Earth days (synchronous rotation)',
+      'Gravity: 1.62 m/s² (approx. 16.6% of Earth\'s gravity)',
+    ],
+    keyFeatures: [
+      'Causes ocean high and low tides via gravitational pull',
+      'Surface covered in impact craters, maria (basaltic plains), and regolith dust',
+      'Synchronous rotation means the same side (near side) always faces Earth',
+    ],
+    safetyAndLegalStatus: 'Outer Space Treaty (1967): International territory — no nation can claim sovereignty over the Moon.',
+    funFact: 'The Moon is drifting away from Earth at a rate of about 3.8 cm (1.5 inches) per year!',
+  },
+
+  'charger': {
+    scientificOrTechName: 'Phone Charger / Power Adapter & USB Charging Cable',
+    primaryUses: 'Converts household AC mains electrical power into regulated low-voltage DC power to charge batteries and operate mobile devices.',
+    specifications: [
+      'Input Voltage: 100V - 240V AC, 50/60Hz universal',
+      'Output Technologies: USB Power Delivery (USB-PD), Qualcomm Quick Charge, GaN (Gallium Nitride)',
+      'Output Power: 5W to 120W+ Fast Charging',
+      'Connector Types: USB Type-C, Lightning, Micro-USB',
+    ],
+    keyFeatures: [
+      'GaN (Gallium Nitride) technology enables ultra-compact high-wattage chargers',
+      'Built-in microcontrollers regulate voltage, current, and temperature to prevent battery degradation',
+      'Data transfer capabilities alongside power delivery over multi-wire braided cables',
+    ],
+    safetyAndLegalStatus: 'Certified safety standards: UL, CE, FCC, BIS, and RoHS compliance.',
+    funFact: 'European Union mandate made USB-C the universal charging port for all smartphones and portable electronics!',
+  },
+
+  'phone charger': {
+    scientificOrTechName: 'Smart Mobile Fast Charger & Power Adapter',
+    primaryUses: 'Delivers high-efficiency electrical energy to modern lithium-ion smartphone batteries.',
+    specifications: [
+      'Protocols: USB Power Delivery 3.0, PPS (Programmable Power Supply)',
+      'Output: 5V/3A, 9V/3A, 12V/3A, up to 20V/5A',
+      'Material: Fire-retardant polycarbonate housing with GaN semiconductors',
+    ],
+    keyFeatures: [
+      'Intelligent handshake protocol negotiates maximum safe power delivery',
+      'Over-voltage, short-circuit, and thermal protection safety chips',
+    ],
+    safetyAndLegalStatus: 'Regulatory compliance: UL 62368-1 safety certification.',
+    funFact: 'Modern GaN fast chargers are 3x more efficient and half the size of traditional silicon chargers!',
+  },
+
+  'cloth': {
+    scientificOrTechName: 'Textile Fabric / Patterned Cloth & Garment Material',
+    primaryUses: 'Flexible woven, knitted, or printed textile material used for clothing, bedsheets, upholstery, fashion, and thermal insulation.',
+    specifications: [
+      'Fibers: Natural (Cotton, Silk, Wool, Linen) or Synthetic (Polyester, Nylon, Rayon)',
+      'Weave Types: Plain, Twill, Satin, Jacquard, Floral Printed Pattern',
+      'Properties: Breathability, tensile strength, colorfastness, tactile softness',
+    ],
+    keyFeatures: [
+      'Provides thermal regulation and physical protection for human skin',
+      'Vibrant printed patterns and dyes express aesthetic style and culture',
+      'Machine washable and wrinkle-resistant modern textile blends',
+    ],
+    safetyAndLegalStatus: 'OEKO-TEX Standard 100 certified for skin safety and non-toxic dyes.',
+    funFact: 'Cotton has been grown and woven into cloth for over 7,000 years, dating back to the Indus Valley Civilization!',
+  },
+
+  'rat': {
+    scientificOrTechName: 'Rat (Rattus norvegicus / Rattus rattus — Rodentia)',
+    primaryUses: 'Highly intelligent mammal, critical model organism in biomedical research, psychology, genetics, and ecosystem seed dispersal.',
+    specifications: [
+      'Class: Mammalia | Order: Rodentia | Family: Muridae',
+      'Lifespan: 2 to 3 years',
+      'Diet: Omnivorous (grains, seeds, vegetation, invertebrates)',
+      'Characteristics: Continuously growing incisors, keen sense of smell, ultrasonic communication',
+    ],
+    keyFeatures: [
+      'Extremely high problem-solving capability and cognitive memory',
+      'Incisor teeth grow 10-12 cm per year, kept short by constant chewing',
+      'Used in over 50% of all medical breakthrough research studies',
+    ],
+    safetyAndLegalStatus: 'Wild urban rats require pest hygiene control; laboratory and domesticated fancy rats are human companions.',
+    funFact: 'Rats are so empathetic that in scientific experiments, they repeatedly choose to rescue a trapped friend rather than eat chocolate!',
+    animalProfile: {
+      name: 'Brown / Black Rat',
+      scientificName: 'Rattus norvegicus',
+      habitat: 'Urban, agricultural, woodland, and subterranean environments globally',
+      diet: 'Omnivorous',
+      conservationStatus: 'Least Concern (Extremely adaptable)',
+      interestingFacts: [
+        'Rats laugh when tickled, emitting ultrasonic chirps of delight!',
+        'A rat can tread water for up to 3 days and hold its breath for 3 minutes underwater.',
+        'Rats have empathy — studies show they will free trapped companion rats before eating treats!',
+      ],
+    },
+  },
+
+  'horse': {
+    scientificOrTechName: 'Horse (Equus caballus — Equidae Mammalian Animal)',
+    primaryUses: 'Majestic equine mammal used for riding, equestrian sports, agricultural work, therapy, transport, and companion animal.',
+    specifications: [
+      'Family: Equidae | Genus: Equus | Species: E. caballus',
+      'Lifespan: 25 to 30 years',
+      'Top Speed: Up to 88 km/h (55 mph) for Thoroughbred sprinters',
+      'Physical Traits: Single-toed hooves, powerful leg muscles, 360-degree monocular vision',
+    ],
+    keyFeatures: [
+      'Can sleep both standing up and lying down thanks to a stay-apparatus lock in leg joints',
+      'Expresses emotions through ears, nostrils, and facial muscle movements',
+      'Largest eyes of any land mammal, providing wide-angle field of view',
+    ],
+    safetyAndLegalStatus: 'Domesticated livestock and equine companion. Protected under international equine welfare standards.',
+    funFact: 'Horses can sleep standing up because special locking tendons in their legs prevent them from falling over!',
+    animalProfile: {
+      name: 'Domestic Horse',
+      scientificName: 'Equus caballus',
+      habitat: 'Pastures, grasslands, stables, and ranches worldwide',
+      diet: 'Herbivore (Grasses, hay, grains)',
+      conservationStatus: 'Domesticated (Extremely widespread)',
+      interestingFacts: [
+        'Horses cannot throw up (vomit) due to a one-way valve in their esophagus.',
+        'A horse\'s teeth take up more space in its head than its brain!',
+        'Horses drink at least 25 gallons of fresh water every single day.',
+      ],
+    },
+  },
 };
 
 export function getKnowledgeForObject(

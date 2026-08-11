@@ -188,6 +188,7 @@ export interface DetectionSettings {
   speechEnabled: boolean;
   cameraResolution: '720p' | '1080p' | 'auto';
   inferenceSpeed: 'fast' | 'balanced' | 'accurate';
+  customApiKey?: string;
 }
 
 export interface SystemStats {

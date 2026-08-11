@@ -3,22 +3,24 @@ import { GoogleGenAI } from '@google/genai';
 import { DetectedObject } from '@/lib/types';
 import { getKnowledgeForObject } from '@/lib/knowledgeEngine';
 
-const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
-
 export async function POST(req: Request) {
   let fallbackObjects: any[] = [];
   try {
-    const { imageBase64, tfjsObjects } = await req.json();
+    const { imageBase64, tfjsObjects, customApiKey } = await req.json();
     fallbackObjects = tfjsObjects || [];
 
     if (!imageBase64) {
       return NextResponse.json({ error: 'Missing imageBase64' }, { status: 400 });
     }
 
-    if (!process.env.GEMINI_API_KEY) {
-      console.warn("GEMINI_API_KEY is not set. Using local knowledge enrichment.");
-      return NextResponse.json({ enhancedObjects: tfjsObjects || [] });
+    const apiKey = customApiKey || process.env.GEMINI_API_KEY;
+
+    if (!apiKey || apiKey.trim() === '' || apiKey.startsWith('AQ.')) {
+      console.warn("GEMINI_API_KEY is missing or invalid. Returning local detection objects.");
+      return NextResponse.json({ enhancedObjects: fallbackObjects });
     }
+
+    const ai = new GoogleGenAI({ apiKey: apiKey.trim() });
 
     let base64Data = imageBase64;
     let mimeType = 'image/jpeg';
@@ -36,42 +38,46 @@ export async function POST(req: Request) {
     }
 
     const prompt = `
-You are the world's most advanced AI computer vision system with deep knowledge of history, famous leaders, biology, birds, animals, tech devices, and objects.
+You are the world's most advanced AI computer vision and deep knowledge system.
 
-${tfjsObjects && tfjsObjects.length > 0 ? `A local object detection model has already found the following objects in the image:\n${JSON.stringify(tfjsObjects, null, 2)}\n\nExamine this image carefully and ENHANCE the knowledge for these objects.` : `Examine this image carefully:`}
+${tfjsObjects && tfjsObjects.length > 0 ? `A local object detection model identified the following initial bounding boxes:\n${JSON.stringify(tfjsObjects, null, 2)}\n\nExamine this image thoroughly and ENHANCE or ADD all objects in the scene.` : `Examine this image thoroughly:`}
 
-1. Identify all people, leaders, historical figures, birds, animals, objects, and eyewear in the image. EVEN IF the local model found nothing, you MUST identify the main subjects!
-   - If a person is present, check if they are a world leader, historical figure, or famous personality (e.g. Dr. A.P.J. Abdul Kalam, N. Chandrababu Naidu [Present CM of Andhra Pradesh], Narendra Modi [Prime Minister of India], Mahatma Gandhi, Subhas Chandra Bose, Bhagat Singh, Albert Einstein, Steve Jobs, Elon Musk, etc.). If so, state their full name!
-   - If a bird is present, identify its exact species.
-   - If an animal is present, identify its specific species/breed.
-   - If tech hardware or audio peripherals are present (CPU / Desktop Tower, Computer Mouse, Keyboard, Headset / Headphones, Earphones, Earbuds, Digital Projector, Monitor, Laptop, Smartphone), identify each item precisely!
-   - If medical items, tablets, pills, or blister strips are present (e.g. Metformin, Paracetamol, Aspirin, Antibiotics, Vitamin tablets, Blister foil strips), identify them as Medicine Tablets / Blister Strip and read any visible medicine name or dosage!
-   - If toys, rocking horses, toy animals, kiddie rides, dolls, or play equipment are present in the image (especially when a child is riding or playing with them), identify each toy precisely as Toy / Rocking Horse / Kiddie Ride!
-   - If an object or eyewear is present, identify its specific type.
+CRITICAL IDENTIFICATION RULES:
+1. Detect ALL main subjects in the image, including celestial objects, animals, electronics, cables, clothing, and everyday items:
+   - CELESTIAL / ASTRONOMY: Moon (Full Moon, Crescent, Lunar surface, Craters), Sun, Stars, Clouds, Night Sky. Identify as "The Moon" under Category "Other".
+   - CHARGERS & CABLES: Phone Charger, Mobile Wall Adapter, USB Charging Cable, Power Brick, Power Bank, Electrical Adapter. Identify as "Phone Charger & Power Adapter" under Category "Electronics".
+   - CLOTHING & FABRIC: Clothing, Garments, Shirts, Pants, Dresses, Bedsheets, Blankets, Floral Patterned Fabrics, Textiles, Towels. Identify as "Clothing / Patterned Fabric" under Category "Clothing".
+   - ANIMALS (REAL vs TOY):
+     * Real living Animals: Cat (Felis catus), Rat (Rodent), Mouse, Horse (Equus caballus), Dog, Birds, Peacocks, Tigers, Wildlife. Identify under Category "Animal".
+     * IMPORTANT FOR HORSES: If a REAL LIVING HORSE is present in the image, identify it as "Horse (Equine Mammal)" under Category "Animal"! DO NOT classify a living horse as a toy!
+     * Reserve Category "Toy" ONLY for artificial wooden/plastic rocking horses, ride-on toys, dolls, or plush stuffed animals!
+   - FAMOUS LEADERS & HUMANS: Identify famous figures (e.g. Dr. A.P.J. Abdul Kalam, N. Chandrababu Naidu [Present CM of Andhra Pradesh], Narendra Modi [PM of India], Mahatma Gandhi, Subhas Chandra Bose, Bhagat Singh, Albert Einstein, Steve Jobs, Elon Musk, etc.) with their full name under Category "Human".
+   - TECH HARDWARE: Headphones, Headset, Earbuds, Computer Mouse, Keyboard, Laptop, Monitor, CPU Tower, Projector.
+   - MEDICAL & TABLETS: Medicine Tablets, Pill Blister Foil Strips, Capsules.
 
-Return a JSON array of identified objects. You MUST add NEW objects with estimated absolute bounding box [x, y, width, height] in pixels if they are not in the existing list.
+Return a JSON array of identified objects.
 Each item in the returned array MUST strictly follow this JSON schema:
 [
   {
-    "id": "MUST MATCH the id of the existing object from the list above, or create a new unique id like 'gemini_obj_1' if you found something new",
-    "displayName": "Concise, specific name (MAX 3-5 WORDS). Examples: 'Medicine Tablets', 'Metformin Tablets IP', 'Rocking Horse Ride', 'Mini Projector'. DO NOT write long descriptions here!",
-    "subCategory": "Descriptive category (e.g. 'Pharmaceutical Medication', 'Pill Blister Strip', 'Child Ride-On Toy', 'Famous Leader & Scientist', 'Avian Species', 'Smartphone')",
+    "id": "gemini_obj_1",
+    "displayName": "Concise specific name (MAX 3-5 WORDS). Examples: 'The Moon', 'Phone Charger & Adapter', 'Clothing / Patterned Fabric', 'Domestic Cat', 'Horse (Equine Mammal)'.",
+    "subCategory": "Descriptive category (e.g. 'Celestial Astronomical Body', 'Power Supply & Charging Cable', 'Textile & Apparel Material', 'Feline Domestic Animal', 'Equidae Mammalian Animal')",
     "category": "One of: 'Human', 'Animal', 'Vehicle', 'Electronics', 'Eyewear', 'Food', 'Clothing', 'Plant', 'Tool', 'Outdoor', 'Furniture', 'Sports', 'Medical', 'Toy', 'Other'",
     "score": 0.98,
     "bbox": [x, y, width, height],
     "knowledge": {
-      "scientificOrTechName": "Full scientific name, tech classification, or historical title",
-      "primaryUses": "Detailed primary purpose, role, or historical contribution",
+      "scientificOrTechName": "Full scientific name, astronomical designation, or tech classification",
+      "primaryUses": "Detailed primary purpose, ecological role, or functionality",
       "specifications": ["specification 1", "specification 2", "specification 3"],
       "keyFeatures": ["key feature 1", "key feature 2", "key feature 3"],
-      "humanDetails": "Biography/Context for humans or behavioral traits for animals/birds",
-      "safetyAndLegalStatus": "Protection status, legal classification, or regulatory safety standards",
-      "funFact": "Fascinating historical, biological, or technological trivia fact"
+      "humanDetails": "Context or behavioral traits",
+      "safetyAndLegalStatus": "Safety standards, regulatory status, or legal protection",
+      "funFact": "Fascinating historical, biological, astronomical, or technological trivia fact"
     }
   }
 ]
 
-Respond ONLY with raw JSON array. Do not use markdown backticks \`\`\`json.
+Respond ONLY with raw JSON array.
 `;
 
     const response = await ai.models.generateContent({
@@ -189,35 +195,6 @@ Respond ONLY with raw JSON array. Do not use markdown backticks \`\`\`json.
     return NextResponse.json({ enhancedObjects: mergedResults });
   } catch (error: any) {
     console.error('Error calling Gemini Vision API:', error?.message, error);
-
-    // Return a safe fallback rather than crashing the UI
-    if (fallbackObjects.length === 0) {
-      fallbackObjects.push({
-        id: 'system_msg',
-        class: 'system',
-        displayName: error?.status === 429 || String(error?.message).includes('429')
-          ? 'AI Quota Exceeded'
-          : String(error?.message).includes('API key') || String(error?.message).includes('API_KEY')
-            ? 'Invalid Gemini API Key'
-            : 'AI Service Unavailable',
-        score: 1.0,
-        bbox: [20, 20, 400, 150],
-        category: 'Other',
-        subCategory: 'System Message',
-        colorHex: '#ff0044',
-        colorName: 'Error Red',
-        estimatedSize: 'Medium',
-        locationQuadrant: 'Top-Left',
-        knowledge: {
-          scientificOrTechName: 'System Status',
-          primaryUses: error?.status === 429 || String(error?.message).includes('429')
-            ? 'The Google Gemini AI free tier limit has been reached. Please click the Settings icon in the top header and enter your own free Gemini API key to continue!'
-            : String(error?.message).includes('API key') || String(error?.message).includes('API_KEY') || String(error?.message).includes('400')
-              ? 'Your Gemini API Key appears to be invalid. Please click the Settings icon (sliders) in the top bar and paste a valid Google Gemini API key starting with "AIzaSy".'
-              : 'The AI vision service is temporarily offline. Basic local COCO model also does not support this specific item (e.g. Pen/Pencil).'
-        }
-      });
-    }
     return NextResponse.json({ enhancedObjects: fallbackObjects });
   }
 }

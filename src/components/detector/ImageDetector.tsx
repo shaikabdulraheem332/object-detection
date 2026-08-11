@@ -34,14 +34,15 @@ export default function ImageDetector({ settings, onSaveToHistory }: ImageDetect
   const imgRef = useRef<HTMLImageElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
-  // Demo sample images covering Leaders, Birds, Animals, Eyewear & Tech
+  // Demo sample images covering Leaders, Birds, Animals, Eyewear, Moon, Charger, Cloth & Tech
   const sampleImages = [
     { label: 'Dr. A.P.J. Abdul Kalam', url: 'https://images.unsplash.com/photo-1544717305-2782549b5136?w=800&auto=format&fit=crop&q=80', hint: 'abdul kalam' },
-    { label: 'Present AP CM / Leader', url: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=800&auto=format&fit=crop&q=80', hint: 'chandrababu naidu' },
-    { label: 'India PM / Leaders', url: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=800&auto=format&fit=crop&q=80', hint: 'narendra modi' },
+    { label: 'The Moon (Celestial)', url: 'https://images.unsplash.com/photo-1522030299830-16b8d3d049fe?w=800&auto=format&fit=crop&q=80', hint: 'moon' },
+    { label: 'Phone Charger & Cable', url: 'https://images.unsplash.com/photo-1583863788434-e58a36330cf0?w=800&auto=format&fit=crop&q=80', hint: 'charger' },
+    { label: 'Patterned Cloth & Fabric', url: 'https://images.unsplash.com/photo-1579546929518-9e396f3cc809?w=800&auto=format&fit=crop&q=80', hint: 'cloth' },
+    { label: 'Horse (Equine Mammal)', url: 'https://images.unsplash.com/photo-1553284965-83fd3e82fa5a?w=800&auto=format&fit=crop&q=80', hint: 'horse' },
+    { label: 'Domestic Cat & Feline', url: 'https://images.unsplash.com/photo-1514888286974-6c03e2ca1dba?w=800&auto=format&fit=crop&q=80', hint: 'cat' },
     { label: 'Indian Peacock & Avian Birds', url: 'https://images.unsplash.com/photo-1534567153574-2b12153a87f0?w=800&auto=format&fit=crop&q=80', hint: 'peacock' },
-    { label: 'Bald Eagle Raptor', url: 'https://images.unsplash.com/photo-1611689342806-0863700ce1e4?w=800&auto=format&fit=crop&q=80', hint: 'eagle' },
-    { label: 'Bengal Tiger Wildlife', url: 'https://images.unsplash.com/photo-1561731216-c3a4d99437d5?w=800&auto=format&fit=crop&q=80', hint: 'tiger' },
     { label: 'Polarized UV Sunglasses', url: 'https://images.unsplash.com/photo-1511499767150-a48a237f0083?w=800&auto=format&fit=crop&q=80', hint: 'sunglasses' },
   ];
 
@@ -105,7 +106,12 @@ export default function ImageDetector({ settings, onSaveToHistory }: ImageDetect
         const res = await fetch('/api/analyze', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ imageBase64: imageSrc, tfjsObjects: enhanced, sampleHint: selectedSampleHint }),
+          body: JSON.stringify({
+            imageBase64: imageSrc,
+            tfjsObjects: enhanced,
+            sampleHint: selectedSampleHint,
+            customApiKey: settings.customApiKey,
+          }),
         });
         if (res.ok) {
           const data = await res.json();

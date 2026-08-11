@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useRef, useEffect } from 'react';
-import { Radio, RotateCcw, Pause, Play, Eye, Cpu, Camera, VideoOff, AlertCircle } from 'lucide-react';
+import { Radio, RotateCcw, Pause, Play, Eye, Cpu, Camera, VideoOff, AlertCircle, Sparkles } from 'lucide-react';
 import { detectObjectsInElement } from '@/lib/tfjs';
 import { enhancePrediction } from '@/lib/analyzer';
 import { DetectedObject, DetectionResult, DetectionSettings } from '@/lib/types';
@@ -29,6 +29,39 @@ export default function LiveStreamDetector({ settings, onSaveToHistory }: LiveSt
   const lastTimeRef = useRef<number>(performance.now());
   const frameCountRef = useRef<number>(0);
   const isDetectingRef = useRef<boolean>(false);
+
+  const [isAiScanning, setIsAiScanning] = useState<boolean>(false);
+
+  const handleAiScan = async () => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+
+    setIsAiScanning(true);
+    try {
+      const base64Data = canvas.toDataURL('image/jpeg');
+      const res = await fetch('/api/analyze', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          imageBase64: base64Data,
+          tfjsObjects: detectedObjects,
+          customApiKey: settings.customApiKey,
+        }),
+      });
+
+      if (res.ok) {
+        const data = await res.json();
+        if (data.enhancedObjects && data.enhancedObjects.length > 0) {
+          setDetectedObjects(data.enhancedObjects);
+          if (settings.soundEnabled) soundManager.playDetectionPing();
+        }
+      }
+    } catch (e) {
+      console.error('AI Scan error', e);
+    } finally {
+      setIsAiScanning(false);
+    }
+  };
 
   const startLiveStream = async () => {
     setCameraError(null);
@@ -286,6 +319,16 @@ export default function LiveStreamDetector({ settings, onSaveToHistory }: LiveSt
         </div>
 
         <div className="flex items-center gap-2">
+          {/* AI Deep Scan Button */}
+          <button
+            onClick={handleAiScan}
+            disabled={isAiScanning}
+            className="flex items-center gap-2 px-4 py-2 rounded-xl bg-gradient-to-r from-neon-purple to-neon-cyan text-cyber-950 font-bold text-xs shadow-neon-cyan hover:scale-105 transition-transform disabled:opacity-50"
+          >
+            <Sparkles className={`w-4 h-4 ${isAiScanning ? 'animate-spin' : ''}`} />
+            <span>{isAiScanning ? 'SCANNING...' : 'AI DEEP SCAN'}</span>
+          </button>
+
           {/* Open / Toggle Camera */}
           {!streamActive ? (
             <button

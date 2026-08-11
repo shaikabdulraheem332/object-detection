@@ -129,7 +129,11 @@ export default function CameraDetector({ settings, onSaveToHistory }: CameraDete
         const res = await fetch('/api/analyze', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ imageBase64: snapshotDataUrl, tfjsObjects: enhanced }),
+          body: JSON.stringify({
+            imageBase64: snapshotDataUrl,
+            tfjsObjects: enhanced,
+            customApiKey: settings.customApiKey,
+          }),
         });
         if (res.ok) {
           const data = await res.json();

@@ -5,13 +5,38 @@ import { getKnowledgeForObject } from './knowledgeEngine';
 const CATEGORY_MAP: Record<string, ObjectCategory> = {
   person: 'Human',
   
-  // Animals & Pets
-  bird: 'Animal',
+  // Celestial & Astronomical
+  moon: 'Other',
+  lunar: 'Other',
+
+  // Charger & Power Electronics
+  charger: 'Electronics',
+  'phone charger': 'Electronics',
+  adapter: 'Electronics',
+  'power adapter': 'Electronics',
+  'charging cable': 'Electronics',
+  cable: 'Electronics',
+  wire: 'Electronics',
+
+  // Clothing & Fabrics
+  cloth: 'Clothing',
+  clothes: 'Clothing',
+  clothing: 'Clothing',
+  garment: 'Clothing',
+  fabric: 'Clothing',
+  bedsheet: 'Clothing',
+  blanket: 'Clothing',
+  towel: 'Clothing',
+
+  // Animals & Rodents
+  rat: 'Animal',
+  rodent: 'Animal',
   cat: 'Animal',
-  dog: 'Animal',
   horse: 'Animal',
-  sheep: 'Animal',
+  dog: 'Animal',
+  bird: 'Animal',
   cow: 'Animal',
+  sheep: 'Animal',
   elephant: 'Animal',
   bear: 'Animal',
   zebra: 'Animal',
@@ -227,116 +252,8 @@ export function detectVisualFeatureFallbacks(
   width: number,
   height: number
 ): { class: string; score: number; bbox: [number, number, number, number] }[] {
-  try {
-    const imageData = ctx.getImageData(0, 0, width, height);
-    const data = imageData.data;
-
-    let darkPixelCount = 0;
-    let minX = width, minY = height, maxX = 0, maxY = 0;
-
-    // Scan pixels for non-white/non-background object bounding box
-    for (let y = 0; y < height; y += 4) {
-      for (let x = 0; x < width; x += 4) {
-        const idx = (y * width + x) * 4;
-        const r = data[idx];
-        const g = data[idx + 1];
-        const b = data[idx + 2];
-
-        // If pixel is dark/colored (not white/light background)
-        if (r < 220 || g < 220 || b < 220) {
-          darkPixelCount++;
-          if (x < minX) minX = x;
-          if (x > maxX) maxX = x;
-          if (y < minY) minY = y;
-          if (y > maxY) maxY = y;
-        }
-      }
-    }
-
-    if (darkPixelCount > 30 && maxX > minX && maxY > minY) {
-      const objWidth = maxX - minX;
-      const objHeight = maxY - minY;
-      const aspectRatio = objWidth / (objHeight || 1);
-      const areaRatio = (objWidth * objHeight) / (width * height);
-
-      const fallbacks: { class: string; score: number; bbox: [number, number, number, number] }[] = [];
-
-      // CPU / Desktop Computer Tower (Vertical box, tall profile, aspect ratio ~ 0.4 - 0.9, min height ~ 80px)
-      if (aspectRatio >= 0.35 && aspectRatio <= 0.85 && objHeight >= 70 && areaRatio > 0.04) {
-        fallbacks.push({
-          class: 'cpu',
-          score: 0.94,
-          bbox: [minX, minY, objWidth, objHeight],
-        });
-      }
-
-      // Computer Keyboard (Wide horizontal profile, aspect ratio ~ 2.5 - 5.5, in lower 60% of frame)
-      if (aspectRatio >= 2.4 && aspectRatio <= 5.5 && minY > height * 0.3) {
-        fallbacks.push({
-          class: 'keyboard',
-          score: 0.93,
-          bbox: [minX, minY, objWidth, objHeight],
-        });
-      }
-
-      // Computer Mouse (Small compact oval, areaRatio < 0.08, aspect ratio ~ 1.0 - 1.8)
-      if (aspectRatio >= 0.9 && aspectRatio <= 1.8 && areaRatio < 0.08 && areaRatio > 0.003) {
-        fallbacks.push({
-          class: 'mouse',
-          score: 0.91,
-          bbox: [minX, minY, objWidth, objHeight],
-        });
-      }
-
-      // Digital Projector (Upper/mid region, aspect ratio ~ 1.3 - 2.8, compact width)
-      if (aspectRatio >= 1.3 && aspectRatio <= 2.8 && minY < height * 0.6 && areaRatio > 0.02 && areaRatio < 0.25) {
-        fallbacks.push({
-          class: 'projector',
-          score: 0.90,
-          bbox: [minX, minY, objWidth, objHeight],
-        });
-      }
-
-      // Sunglasses / Eyewear Profile
-      if (aspectRatio >= 1.8 && aspectRatio <= 4.0 && areaRatio < 0.15) {
-        fallbacks.push({
-          class: 'sunglasses',
-          score: 0.94,
-          bbox: [
-            Math.max(10, minX - 10),
-            Math.max(10, minY - 10),
-            Math.min(width - minX, objWidth + 20),
-            Math.min(height - minY, objHeight + 20),
-          ],
-        });
-      }
-
-      // Mobile phone profile: Slim vertical rectangle (aspect ratio ~ 0.4 - 0.7)
-      if (aspectRatio >= 0.4 && aspectRatio <= 0.7 && areaRatio < 0.2) {
-        fallbacks.push({
-          class: 'cell phone',
-          score: 0.92,
-          bbox: [minX, minY, objWidth, objHeight],
-        });
-      }
-
-      // Medicine Tablets / Pill Blister Pack (Foil strip packaging, aspect ratio ~ 0.6 - 3.2, areaRatio > 0.02)
-      if (aspectRatio >= 0.6 && aspectRatio <= 3.2 && areaRatio >= 0.02 && areaRatio <= 0.5) {
-        fallbacks.push({
-          class: 'tablets',
-          score: 0.94,
-          bbox: [minX, minY, objWidth, objHeight],
-        });
-      }
-
-      if (fallbacks.length > 0) {
-        return fallbacks;
-      }
-    }
-  } catch (e) {
-    // Fail-safe heuristic fallback
-  }
-
+  // Do NOT generate arbitrary fake predictions (like fake 'cpu' / Desktop CPU Tower 94%)
+  // Returning empty array so Gemini API or true models handle undetected objects accurately.
   return [];
 }
 
@@ -401,7 +318,7 @@ export function enhancePrediction(
 
   const hintLower = (sampleHint || '').toLowerCase();
 
-  // Smart figure & species resolution for leader, bird, animal, and eyewear hints
+  // Smart figure & species resolution for leader, bird, animal, celestial, and eyewear hints
   if (hintLower.includes('isaac newton') || hintLower.includes('newton')) {
     displayName = 'Sir Isaac Newton';
     category = 'Human';
@@ -498,6 +415,59 @@ export function enhancePrediction(
     displayName = 'Usain Bolt';
     category = 'Human';
     subCategory = 'Jamaican Sprinter';
+  } else if (hintLower.includes('moon') || rawPrediction.class === 'moon') {
+    displayName = 'The Moon';
+    category = 'Other';
+    subCategory = 'Celestial Astronomical Body';
+  } else if (
+    hintLower.includes('charger') ||
+    rawPrediction.class === 'charger' ||
+    rawPrediction.class === 'phone charger' ||
+    rawPrediction.class === 'adapter' ||
+    rawPrediction.class === 'power adapter'
+  ) {
+    displayName = 'Phone Charger & Power Adapter';
+    category = 'Electronics';
+    subCategory = 'Power Supply & Charging Cable';
+  } else if (
+    hintLower.includes('cloth') ||
+    rawPrediction.class === 'cloth' ||
+    rawPrediction.class === 'clothes' ||
+    rawPrediction.class === 'clothing' ||
+    rawPrediction.class === 'garment' ||
+    rawPrediction.class === 'fabric' ||
+    rawPrediction.class === 'bedsheet'
+  ) {
+    displayName = 'Clothing / Patterned Fabric';
+    category = 'Clothing';
+    subCategory = 'Textile & Apparel Material';
+  } else if (
+    hintLower.includes('rat') ||
+    rawPrediction.class === 'rat' ||
+    rawPrediction.class === 'rodent'
+  ) {
+    displayName = 'Rat / Rodent';
+    category = 'Animal';
+    subCategory = 'Rodentia Mammalian Species';
+  } else if (rawPrediction.class === 'cat' || hintLower.includes('cat')) {
+    displayName = 'Domestic Cat (Felis catus)';
+    category = 'Animal';
+    subCategory = 'Feline Domestic Animal';
+  } else if (
+    rawPrediction.class === 'rocking horse' ||
+    rawPrediction.class === 'toy horse' ||
+    rawPrediction.class === 'kiddie ride' ||
+    hintLower.includes('rocking horse') ||
+    hintLower.includes('toy horse') ||
+    hintLower.includes('kiddie ride')
+  ) {
+    displayName = 'Toy Horse / Rocking Horse';
+    category = 'Toy';
+    subCategory = 'Child Play Ride & Animal Structure';
+  } else if (rawPrediction.class === 'horse' || hintLower.includes('horse')) {
+    displayName = 'Horse (Equus caballus)';
+    category = 'Animal';
+    subCategory = 'Equidae Mammalian Animal';
   } else if (hintLower.includes('peacock')) {
     displayName = 'Indian Peacock (Pavo cristatus)';
     category = 'Animal';
@@ -537,22 +507,6 @@ export function enhancePrediction(
     } else {
       displayName = formatClassTitle(rawPrediction.class);
     }
-  } else if (
-    rawPrediction.class === 'rocking horse' ||
-    rawPrediction.class === 'toy horse' ||
-    rawPrediction.class === 'kiddie ride' ||
-    rawPrediction.class === 'toy' ||
-    hintLower.includes('toy') ||
-    hintLower.includes('rocking horse') ||
-    hintLower.includes('kiddie ride')
-  ) {
-    displayName = 'Toy Horse / Rocking Horse';
-    category = 'Toy';
-    subCategory = 'Child Amusement & Ride-On Toy';
-  } else if (rawPrediction.class === 'horse') {
-    displayName = 'Toy Horse / Rocking Horse Ride';
-    category = 'Toy';
-    subCategory = 'Child Play Ride & Animal Structure';
   } else if (rawPrediction.class === 'teddy bear') {
     displayName = 'Plush Teddy Bear Toy';
     category = 'Toy';

@@ -12,6 +12,7 @@ import {
   RotateCcw,
   Sparkles,
   Speech,
+  Key,
 } from 'lucide-react';
 import { DetectionSettings } from '@/lib/types';
 import { DEFAULT_SETTINGS, saveSettings } from '@/lib/storage';
@@ -69,6 +70,23 @@ export default function SettingsModal({
 
         {/* Content Body */}
         <div className="space-y-5 text-xs">
+          {/* Custom Gemini API Key */}
+          <div className="space-y-2">
+            <label className="text-gray-300 font-bold flex items-center gap-1.5 font-mono">
+              <Key className="w-3.5 h-3.5 text-neon-amber" /> Google Gemini API Key (Optional)
+            </label>
+            <input
+              type="password"
+              placeholder="Paste your API key starting with AIzaSy..."
+              value={settings.customApiKey || ''}
+              onChange={(e) => updateSetting('customApiKey', e.target.value)}
+              className="w-full px-3.5 py-2.5 rounded-xl bg-cyber-900 border border-white/10 text-white font-mono placeholder:text-gray-600 focus:outline-none focus:border-neon-cyan"
+            />
+            <p className="text-[11px] text-gray-500">
+              Optional: Enter your free Google Gemini API key to power Deep Vision AI identification for Moon, Chargers, Clothes, Rats, Cats, Horses, and custom items.
+            </p>
+          </div>
+
           {/* Confidence Slider */}
           <div className="space-y-2">
             <div className="flex justify-between font-mono">
