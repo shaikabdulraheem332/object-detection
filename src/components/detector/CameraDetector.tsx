@@ -14,6 +14,7 @@ import {
 } from 'lucide-react';
 import { detectObjectsInElement } from '@/lib/tfjs';
 import { enhancePrediction } from '@/lib/analyzer';
+import { analyzeWithGeminiClientSide } from '@/lib/geminiClient';
 import { DetectedObject, DetectionResult, DetectionSettings } from '@/lib/types';
 import { soundManager } from '@/lib/audio';
 import DetectionCardGrid from '../results/DetectionCardGrid';
@@ -124,7 +125,7 @@ export default function CameraDetector({ settings, onSaveToHistory }: CameraDete
         enhancePrediction(pred, idx, ctx, width, height)
       );
 
-      // Fetch deep knowledge from Gemini API backend
+      // Fetch deep knowledge from Gemini API backend or client side AI
       try {
         const res = await fetch('/api/analyze', {
           method: 'POST',
@@ -140,9 +141,27 @@ export default function CameraDetector({ settings, onSaveToHistory }: CameraDete
           if (data.enhancedObjects) {
             enhanced = data.enhancedObjects;
           }
+        } else {
+          const clientResults = await analyzeWithGeminiClientSide(
+            snapshotDataUrl,
+            enhanced,
+            null,
+            settings.customApiKey
+          );
+          if (clientResults && clientResults.length > 0) {
+            enhanced = clientResults;
+          }
         }
       } catch (apiError) {
-        console.error('Gemini API enrichment failed, falling back to local engine.', apiError);
+        const clientResults = await analyzeWithGeminiClientSide(
+          snapshotDataUrl,
+          enhanced,
+          null,
+          settings.customApiKey
+        );
+        if (clientResults && clientResults.length > 0) {
+          enhanced = clientResults;
+        }
       }
 
       setDetectedObjects(enhanced);

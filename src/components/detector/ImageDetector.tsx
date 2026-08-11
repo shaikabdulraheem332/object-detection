@@ -13,6 +13,7 @@ import {
 } from 'lucide-react';
 import { detectObjectsInElement } from '@/lib/tfjs';
 import { enhancePrediction } from '@/lib/analyzer';
+import { analyzeWithGeminiClientSide } from '@/lib/geminiClient';
 import { DetectedObject, DetectionResult, DetectionSettings } from '@/lib/types';
 import { soundManager } from '@/lib/audio';
 import DetectionCardGrid from '../results/DetectionCardGrid';
@@ -34,16 +35,16 @@ export default function ImageDetector({ settings, onSaveToHistory }: ImageDetect
   const imgRef = useRef<HTMLImageElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
-  // Demo sample images covering Leaders, Birds, Animals, Eyewear, Moon, Charger, Cloth & Tech
+  // Demo sample images covering Lions, Ants, Moon, Chargers, Animals & Leaders
   const sampleImages = [
-    { label: 'Dr. A.P.J. Abdul Kalam', url: 'https://images.unsplash.com/photo-1544717305-2782549b5136?w=800&auto=format&fit=crop&q=80', hint: 'abdul kalam' },
+    { label: 'African Lion Wildlife', url: 'https://images.unsplash.com/photo-1546182990-dffeafbe841d?w=800&auto=format&fit=crop&q=80', hint: 'lion' },
+    { label: 'Ants & Insect Colony', url: 'https://images.unsplash.com/photo-1590483736622-39da86788790?w=800&auto=format&fit=crop&q=80', hint: 'ant' },
     { label: 'The Moon (Celestial)', url: 'https://images.unsplash.com/photo-1522030299830-16b8d3d049fe?w=800&auto=format&fit=crop&q=80', hint: 'moon' },
     { label: 'Phone Charger & Cable', url: 'https://images.unsplash.com/photo-1583863788434-e58a36330cf0?w=800&auto=format&fit=crop&q=80', hint: 'charger' },
     { label: 'Patterned Cloth & Fabric', url: 'https://images.unsplash.com/photo-1579546929518-9e396f3cc809?w=800&auto=format&fit=crop&q=80', hint: 'cloth' },
     { label: 'Horse (Equine Mammal)', url: 'https://images.unsplash.com/photo-1553284965-83fd3e82fa5a?w=800&auto=format&fit=crop&q=80', hint: 'horse' },
     { label: 'Domestic Cat & Feline', url: 'https://images.unsplash.com/photo-1514888286974-6c03e2ca1dba?w=800&auto=format&fit=crop&q=80', hint: 'cat' },
-    { label: 'Indian Peacock & Avian Birds', url: 'https://images.unsplash.com/photo-1534567153574-2b12153a87f0?w=800&auto=format&fit=crop&q=80', hint: 'peacock' },
-    { label: 'Polarized UV Sunglasses', url: 'https://images.unsplash.com/photo-1511499767150-a48a237f0083?w=800&auto=format&fit=crop&q=80', hint: 'sunglasses' },
+    { label: 'Dr. A.P.J. Abdul Kalam', url: 'https://images.unsplash.com/photo-1544717305-2782549b5136?w=800&auto=format&fit=crop&q=80', hint: 'abdul kalam' },
   ];
 
   const handleFileUpload = (file: File) => {
@@ -92,8 +93,8 @@ export default function ImageDetector({ settings, onSaveToHistory }: ImageDetect
         ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
       }
 
-      // Model detection with canvas context passed for visual feature fallback
-      const rawPredictions = await detectObjectsInElement(img, settings.confidenceThreshold, ctx);
+      // Model detection with canvas element passed for exact resolution alignment
+      const rawPredictions = await detectObjectsInElement(canvas, settings.confidenceThreshold, ctx);
       const duration = Math.round(performance.now() - startTime);
       setInferenceTime(duration);
 
@@ -101,7 +102,7 @@ export default function ImageDetector({ settings, onSaveToHistory }: ImageDetect
         enhancePrediction(pred, idx, ctx, canvas.width, canvas.height, selectedSampleHint)
       );
 
-      // Fetch deep knowledge from Gemini API backend
+      // Try server /api/analyze route or fallback to client-side Gemini AI for static hosting (GitHub Pages)
       try {
         const res = await fetch('/api/analyze', {
           method: 'POST',
@@ -118,9 +119,29 @@ export default function ImageDetector({ settings, onSaveToHistory }: ImageDetect
           if (data.enhancedObjects && data.enhancedObjects.length > 0) {
             enhanced = data.enhancedObjects;
           }
+        } else {
+          // GitHub Pages static export — run client-side Gemini AI
+          const clientResults = await analyzeWithGeminiClientSide(
+            imageSrc,
+            enhanced,
+            selectedSampleHint,
+            settings.customApiKey
+          );
+          if (clientResults && clientResults.length > 0) {
+            enhanced = clientResults;
+          }
         }
       } catch (apiError) {
-        console.error('Gemini API enrichment failed, falling back to local engine.', apiError);
+        // Fallback to client-side Gemini AI
+        const clientResults = await analyzeWithGeminiClientSide(
+          imageSrc,
+          enhanced,
+          selectedSampleHint,
+          settings.customApiKey
+        );
+        if (clientResults && clientResults.length > 0) {
+          enhanced = clientResults;
+        }
       }
 
       setDetectedObjects(enhanced);

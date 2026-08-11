@@ -4,6 +4,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { Radio, RotateCcw, Pause, Play, Eye, Cpu, Camera, VideoOff, AlertCircle, Sparkles } from 'lucide-react';
 import { detectObjectsInElement } from '@/lib/tfjs';
 import { enhancePrediction } from '@/lib/analyzer';
+import { analyzeWithGeminiClientSide } from '@/lib/geminiClient';
 import { DetectedObject, DetectionResult, DetectionSettings } from '@/lib/types';
 import { soundManager } from '@/lib/audio';
 import DetectionCardGrid from '../results/DetectionCardGrid';
@@ -39,23 +40,35 @@ export default function LiveStreamDetector({ settings, onSaveToHistory }: LiveSt
     setIsAiScanning(true);
     try {
       const base64Data = canvas.toDataURL('image/jpeg');
-      const res = await fetch('/api/analyze', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          imageBase64: base64Data,
-          tfjsObjects: detectedObjects,
-          customApiKey: settings.customApiKey,
-        }),
-      });
+      let enhanced = detectedObjects;
 
-      if (res.ok) {
-        const data = await res.json();
-        if (data.enhancedObjects && data.enhancedObjects.length > 0) {
-          setDetectedObjects(data.enhancedObjects);
-          if (settings.soundEnabled) soundManager.playDetectionPing();
+      try {
+        const res = await fetch('/api/analyze', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            imageBase64: base64Data,
+            tfjsObjects: detectedObjects,
+            customApiKey: settings.customApiKey,
+          }),
+        });
+
+        if (res.ok) {
+          const data = await res.json();
+          if (data.enhancedObjects && data.enhancedObjects.length > 0) {
+            enhanced = data.enhancedObjects;
+          }
+        } else {
+          const clientResults = await analyzeWithGeminiClientSide(base64Data, detectedObjects, null, settings.customApiKey);
+          if (clientResults && clientResults.length > 0) enhanced = clientResults;
         }
+      } catch (err) {
+        const clientResults = await analyzeWithGeminiClientSide(base64Data, detectedObjects, null, settings.customApiKey);
+        if (clientResults && clientResults.length > 0) enhanced = clientResults;
       }
+
+      setDetectedObjects(enhanced);
+      if (settings.soundEnabled && enhanced.length > 0) soundManager.playDetectionPing();
     } catch (e) {
       console.error('AI Scan error', e);
     } finally {

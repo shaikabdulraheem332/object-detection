@@ -3559,6 +3559,67 @@ const KNOWLEDGE_DATABASE: Record<string, AIKnowledgeExplanation> = {
       ],
     },
   },
+
+  'lion': {
+    scientificOrTechName: 'African Lion (Panthera leo — Felidae)',
+    primaryUses: 'Apex carnivore predator, keystone species in African savannahs and grasslands, ecosystem regulator of herbivore populations.',
+    specifications: [
+      'Class: Mammalia | Order: Carnivora | Family: Felidae',
+      'Weight: 150 to 250 kg (330 to 550 lbs)',
+      'Bite Force: 650 PSI (pounds per square inch)',
+      'Roar Volume: Up to 114 dB (heard up to 8 km / 5 miles away)',
+    ],
+    keyFeatures: [
+      'Only truly social cat species — live in family groups called prides (up to 40 lions)',
+      'Adult males develop thick protective dark manes to attract females and protect the neck during fights',
+      'Female lionesses perform 85-90% of the pride\'s hunting cooperatively',
+    ],
+    safetyAndLegalStatus: 'IUCN Status: Vulnerable (Protected in national reserves like Serengeti and Maasai Mara).',
+    funFact: 'A lion\'s roar can be heard from 5 miles (8 kilometers) away, making it the loudest roar of any big cat!',
+    animalProfile: {
+      name: 'African Lion',
+      scientificName: 'Panthera leo',
+      habitat: 'African grasslands, savannahs, scrub, and open woodlands',
+      diet: 'Carnivorous (Zebras, wildebeest, buffalo, antelopes)',
+      lifespan: '10–14 years in wild (up to 20 years in captivity)',
+      conservationStatus: 'Vulnerable',
+      interestingFacts: [
+        'Lions sleep up to 20 hours a day to conserve energy for explosive nocturnal hunts.',
+        'Lions are the only big cats where males and females look drastically different (sexual dimorphism).',
+        'A lion\'s heels don\'t touch the ground when walking — they walk on their toes!',
+      ],
+    },
+  },
+
+  'ant': {
+    scientificOrTechName: 'Ant (Formicidae — Eusocial Hymenoptera Insects)',
+    primaryUses: 'Eusocial colony insect, critical soil aerator, organic matter recycler, seed disperser, and pest predator.',
+    specifications: [
+      'Class: Insecta | Order: Hymenoptera | Family: Formicidae',
+      'Lifespan: Workers live 1-3 years; Queens can live up to 30 years!',
+      'Strength: Can lift 10x to 50x their own body weight',
+      'Colony Structure: Queen, Female Worker Ants, Soldier Ants, Male Drones',
+    ],
+    keyFeatures: [
+      'Communicate via chemical pheromone trails left on surfaces for foraging nestmates',
+      'Possess complex social organization, super-colony networks, and agricultural fungus farming',
+      'Combined biomass of all ants equals or exceeds total human biomass on Earth!',
+    ],
+    safetyAndLegalStatus: 'Ecologically vital worldwide. Some species (e.g. fire ants) require pest management in homes.',
+    funFact: 'Ants don\'t have lungs! They breathe in oxygen through tiny spiracle pores all over their bodies!',
+    animalProfile: {
+      name: 'Ant Colony',
+      scientificName: 'Formicidae',
+      habitat: 'Soil, wood, leaf litter, and subterranean tunnels on every continent except Antarctica',
+      diet: 'Omnivorous (Nectar, seeds, fungus, other insects)',
+      conservationStatus: 'Least Concern (Extremely abundant)',
+      interestingFacts: [
+        'For every human on Earth, there are over 2.5 million ants!',
+        'Ants have two stomachs — one for holding food for themselves, and one for sharing with nestmates.',
+        'Some ant species farm aphid insects like livestock to harvest sweet honeydew nectar!',
+      ],
+    },
+  },
 };
 
 export function getKnowledgeForObject(
