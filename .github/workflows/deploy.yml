@@ -1,5 +1,5 @@
 name: Deploy Next.js to GitHub Pages
-# Trigger deployment run
+# Re-trigger deployment run to resolve temporary 503 GitHub Pages outage
 on:
   push:
     branches: ["main"]
