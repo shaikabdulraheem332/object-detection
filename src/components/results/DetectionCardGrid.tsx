@@ -3,14 +3,10 @@
 import React, { useState } from 'react';
 import { DetectedObject } from '@/lib/types';
 import {
-  User,
-  Dog,
-  Car,
   Laptop,
   Cpu,
   Utensils,
   Shirt,
-  Sprout,
   Wrench,
   Dumbbell,
   Compass,
@@ -20,6 +16,11 @@ import {
   BookOpen,
   Sparkles,
   Glasses,
+  Box,
+  Layers,
+  Building,
+  Car,
+  FolderTree,
 } from 'lucide-react';
 import { soundManager } from '@/lib/audio';
 import AIKnowledgeModal from './AIKnowledgeModal';
@@ -42,11 +43,12 @@ export default function DetectionCardGrid({
 
   if (objects.length === 0) {
     return (
-      <div className="glass-panel p-8 rounded-2xl text-center space-y-3 border border-white/10">
-        <Cpu className="w-10 h-10 text-gray-500 mx-auto animate-pulse" />
-        <h3 className="text-sm font-semibold text-gray-300">No Objects Detected</h3>
-        <p className="text-xs text-gray-500">
-          Point the camera at recognizable items or upload a clearer photo.
+      <div className="glass-panel p-8 sm:p-12 rounded-3xl text-center space-y-4 border border-rose-500/20 bg-rose-950/10">
+        <Box className="w-12 h-12 text-rose-400 mx-auto animate-pulse" />
+        <h3 className="text-lg font-bold text-rose-200">No non-living objects detected.</h3>
+        <p className="text-xs text-gray-400 max-w-md mx-auto">
+          The AI vision engine completely ignores all living organisms (humans, animals, birds, plants).
+          Point your camera at non-living physical objects like laptops, phones, chairs, desks, mugs, pens, tools, or backpacks.
         </p>
       </div>
     );
@@ -54,24 +56,26 @@ export default function DetectionCardGrid({
 
   const getCategoryIcon = (category: string) => {
     switch (category) {
-      case 'Human':
-        return <User className="w-4 h-4 text-neon-cyan" />;
-      case 'Animal':
-        return <Dog className="w-4 h-4 text-neon-purple" />;
-      case 'Vehicle':
-        return <Car className="w-4 h-4 text-laser-pink" />;
-      case 'Eyewear':
-        return <Glasses className="w-4 h-4 text-neon-cyan" />;
       case 'Electronics':
         return <Laptop className="w-4 h-4 text-neon-cyan" />;
-      case 'Food':
-        return <Utensils className="w-4 h-4 text-neon-amber" />;
+      case 'Furniture':
+        return <Box className="w-4 h-4 text-neon-purple" />;
+      case 'Stationery':
+        return <BookOpen className="w-4 h-4 text-emerald-400" />;
       case 'Clothing':
-        return <Shirt className="w-4 h-4 text-neon-purple" />;
-      case 'Plant':
-        return <Sprout className="w-4 h-4 text-neon-emerald" />;
+        return <Shirt className="w-4 h-4 text-laser-pink" />;
+      case 'Kitchen':
+        return <Utensils className="w-4 h-4 text-amber-400" />;
+      case 'Household':
+        return <Layers className="w-4 h-4 text-cyan-400" />;
       case 'Tool':
-        return <Wrench className="w-4 h-4 text-cyan-400" />;
+        return <Wrench className="w-4 h-4 text-blue-400" />;
+      case 'Vehicle':
+        return <Car className="w-4 h-4 text-neon-cyan" />;
+      case 'Building':
+        return <Building className="w-4 h-4 text-neon-purple" />;
+      case 'Eyewear':
+        return <Glasses className="w-4 h-4 text-laser-pink" />;
       case 'Sports':
         return <Dumbbell className="w-4 h-4 text-neon-pink" />;
       default:
@@ -98,16 +102,16 @@ export default function DetectionCardGrid({
       return;
     }
 
-    // Stop any other active speech first
     soundManager.stopSpeaking();
     setSpeakingObjId(null);
 
-    const rawSummary = obj.knowledge?.primaryUses || `Identified as ${obj.displayName} in category ${obj.category}.`;
+    const nameToSpeak = obj.instanceLabel || obj.displayName;
+    const rawSummary = obj.knowledge?.primaryUses || `Non-living physical object in category ${obj.category}.`;
     const cleanSummary = cleanForSpeech(rawSummary);
-    const cleanName = cleanForSpeech(obj.displayName);
+    const cleanName = cleanForSpeech(nameToSpeak);
 
     const started = soundManager.speakObjectKnowledge(cleanName, cleanSummary, () => {
-      setSpeakingObjId(null); // reset button when speech naturally ends
+      setSpeakingObjId(null);
     });
 
     if (started) {
@@ -118,27 +122,53 @@ export default function DetectionCardGrid({
   };
 
   return (
-    <div className="space-y-4">
-      {/* Header Info */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-2">
-          <Sparkles className="w-4 h-4 text-neon-cyan" />
-          <h3 className="text-sm font-bold text-white tracking-wide uppercase font-mono">
-            Identified Entities & Deep AI Knowledge ({objects.length})
-          </h3>
+    <div className="space-y-6">
+      {/* Result Summary Banner Panel */}
+      <div className="glass-panel p-5 sm:p-6 rounded-3xl border border-neon-cyan/30 bg-cyber-950/80 shadow-neon-cyan space-y-3">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div className="space-y-1">
+            <div className="flex items-center gap-2">
+              <Sparkles className="w-5 h-5 text-neon-cyan animate-pulse" />
+              <h2 className="text-base sm:text-lg font-extrabold text-white tracking-widest uppercase font-mono">
+                OBJECTS DETECTED
+              </h2>
+            </div>
+            <p className="text-xl sm:text-2xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-neon-cyan via-white to-neon-purple font-sans">
+              {objects.length} Non-Living Physical Object{objects.length !== 1 ? 's' : ''}
+            </p>
+          </div>
+
+          <div className="flex items-center gap-3">
+            {inferenceTimeMs !== undefined && (
+              <span className="text-xs font-mono text-neon-cyan bg-neon-cyan/10 px-3 py-1.5 rounded-full border border-neon-cyan/40 shadow-neon-cyan">
+                Inference: {inferenceTimeMs}ms
+              </span>
+            )}
+          </div>
         </div>
-        {inferenceTimeMs !== undefined && (
-          <span className="text-[11px] font-mono text-neon-cyan/80 bg-neon-cyan/10 px-2.5 py-1 rounded-full border border-neon-cyan/30">
-            Inference: {inferenceTimeMs}ms
-          </span>
-        )}
+
+        {/* Quick Ranked List Bar */}
+        <div className="pt-2 border-t border-white/10 flex flex-wrap gap-2 text-xs font-mono">
+          {objects.map((obj, idx) => (
+            <span
+              key={obj.id}
+              onClick={() => setSelectedKnowledgeObj(obj)}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl glass-panel-interactive border border-white/10 hover:border-neon-cyan/50 text-gray-200 cursor-pointer transition-all"
+            >
+              <span className="text-neon-cyan font-bold">{idx + 1}.</span>
+              <span>{obj.instanceLabel || obj.displayName}</span>
+              <span className="text-neon-emerald font-bold">{Math.round(obj.score * 100)}%</span>
+            </span>
+          ))}
+        </div>
       </div>
 
-      {/* Grid of Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-        {objects.map((obj) => {
+      {/* Grid of Individual Object Cards */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+        {objects.map((obj, idx) => {
           const isHovered = hoveredObjId === obj.id;
           const confidencePct = Math.round(obj.score * 100);
+          const nameToDisplay = obj.instanceLabel || obj.displayName;
 
           return (
             <div
@@ -153,20 +183,18 @@ export default function DetectionCardGrid({
             >
               {/* Header Title & Score */}
               <div className="flex items-start justify-between gap-2">
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-2.5">
                   <div className="p-2 rounded-xl bg-cyber-900/80 border border-white/10">
                     {getCategoryIcon(obj.category)}
                   </div>
                   <div>
-                    <h4 className="text-sm font-bold text-white group-hover:text-neon-cyan transition-colors flex items-center gap-1.5">
-                      {obj.displayName}
-                      {obj.subCategory && (
-                        <span className="text-[10px] font-mono text-neon-purple px-1.5 py-0.5 rounded bg-neon-purple/20 border border-neon-purple/30">
-                          {obj.subCategory}
-                        </span>
-                      )}
-                    </h4>
-                    <span className="text-[11px] font-mono text-gray-400">
+                    <div className="flex items-center gap-1.5">
+                      <span className="text-xs font-mono font-bold text-neon-cyan">{idx + 1}.</span>
+                      <h4 className="text-sm font-bold text-white group-hover:text-neon-cyan transition-colors">
+                        {nameToDisplay}
+                      </h4>
+                    </div>
+                    <span className="text-[11px] font-mono text-gray-400 block">
                       Category: {obj.category}
                     </span>
                   </div>
@@ -178,7 +206,7 @@ export default function DetectionCardGrid({
                     e.stopPropagation();
                     handleSpeak(obj);
                   }}
-                  title={speakingObjId === obj.id ? 'Stop AI Voice' : 'Read Aloud with Cute AI Voice'}
+                  title={speakingObjId === obj.id ? 'Stop Voice' : 'Read Aloud Object Details'}
                   className={`p-1.5 rounded-lg glass-panel transition-all ${
                     speakingObjId === obj.id
                       ? 'bg-neon-cyan/30 text-neon-cyan border border-neon-cyan/60 animate-pulse shadow-neon-cyan'
@@ -188,6 +216,16 @@ export default function DetectionCardGrid({
                   <Volume2 className={`w-3.5 h-3.5 ${speakingObjId === obj.id ? 'animate-bounce' : ''}`} />
                 </button>
               </div>
+
+              {/* Hierarchical Breakdown Badge */}
+              {obj.hierarchy && (
+                <div className="flex items-center gap-1.5 text-[10px] font-mono text-neon-purple bg-neon-purple/10 px-2.5 py-1 rounded-lg border border-neon-purple/30">
+                  <FolderTree className="w-3 h-3 text-neon-purple shrink-0" />
+                  <span className="truncate">
+                    {obj.hierarchy.category} &rarr; {obj.hierarchy.subcategory} &rarr; {obj.hierarchy.specificType}
+                  </span>
+                </div>
+              )}
 
               {/* Confidence Meter Bar */}
               <div className="space-y-1">
@@ -205,7 +243,7 @@ export default function DetectionCardGrid({
                 </div>
               </div>
 
-              {/* Enhanced Metadata Badges */}
+              {/* Metadata Badges */}
               <div className="grid grid-cols-3 gap-1.5 pt-1 text-[10px] font-mono">
                 {/* Color sample */}
                 <div className="flex items-center gap-1.5 p-1.5 rounded-lg bg-cyber-900/60 border border-white/5">
@@ -239,7 +277,7 @@ export default function DetectionCardGrid({
                   className="w-full flex items-center justify-center gap-2 py-2 rounded-xl bg-gradient-to-r from-neon-cyan/20 to-neon-purple/20 border border-neon-cyan/40 text-neon-cyan font-mono text-[11px] font-bold hover:bg-neon-cyan/30 shadow-neon-cyan transition-all"
                 >
                   <BookOpen className="w-3.5 h-3.5" />
-                  <span>DEEP AI EXPLANATION & USES</span>
+                  <span>TAXONOMY & NON-LIVING SPECS</span>
                 </button>
               </div>
             </div>

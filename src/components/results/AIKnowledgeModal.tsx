@@ -132,6 +132,39 @@ export default function AIKnowledgeModal({ object, onClose }: AIKnowledgeModalPr
         {/* Knowledge Body Grid */}
         <div className="space-y-5 text-xs text-gray-200">
           
+          {/* Hierarchical Object Recognition Taxonomy */}
+          <div className="p-4 rounded-2xl bg-cyber-900/90 border border-neon-cyan/30 space-y-2">
+            <h4 className="text-xs font-bold text-neon-cyan font-mono uppercase tracking-wider flex items-center gap-2">
+              <Sparkles className="w-4 h-4 text-neon-cyan" />
+              Hierarchical Object Recognition Taxonomy
+            </h4>
+            <div className="flex flex-wrap items-center gap-2 pt-1 font-mono text-xs text-gray-200">
+              <span className="px-2.5 py-1 rounded-lg bg-cyber-950 border border-white/10 text-gray-400">
+                Non-Living Object
+              </span>
+              <span className="text-neon-cyan font-bold">&rarr;</span>
+              <span className="px-2.5 py-1 rounded-lg bg-neon-purple/20 border border-neon-purple/40 text-neon-purple font-bold">
+                {object.hierarchy?.category || object.category}
+              </span>
+              <span className="text-neon-cyan font-bold">&rarr;</span>
+              <span className="px-2.5 py-1 rounded-lg bg-neon-cyan/20 border border-neon-cyan/40 text-neon-cyan font-bold">
+                {object.hierarchy?.subcategory || object.subCategory || 'Physical Equipment'}
+              </span>
+              <span className="text-neon-cyan font-bold">&rarr;</span>
+              <span className="px-2.5 py-1 rounded-lg bg-laser-pink/20 border border-laser-pink/40 text-laser-pink font-bold">
+                {object.instanceLabel || object.hierarchy?.specificType || object.displayName}
+              </span>
+              {object.hierarchy?.exactModel && (
+                <>
+                  <span className="text-neon-cyan font-bold">&rarr;</span>
+                  <span className="px-2.5 py-1 rounded-lg bg-emerald-500/20 border border-emerald-500/40 text-emerald-300 font-bold">
+                    {object.hierarchy.exactModel}
+                  </span>
+                </>
+              )}
+            </div>
+          </div>
+
           {/* Primary Uses & Purpose */}
           <div className="p-4 rounded-2xl bg-cyber-900/80 border border-white/10 space-y-2">
             <h4 className="text-xs font-bold text-neon-cyan font-mono uppercase tracking-wider flex items-center gap-2">

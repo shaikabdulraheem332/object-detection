@@ -1,9 +1,9 @@
 'use client';
 
 import React, { useState, useRef, useEffect } from 'react';
-import { Video, Upload, Play, Pause, RefreshCw, Cpu, Sparkles } from 'lucide-react';
+import { Video, Upload, RefreshCw, Sparkles } from 'lucide-react';
 import { detectObjectsInElement } from '@/lib/tfjs';
-import { enhancePrediction } from '@/lib/analyzer';
+import { enhancePrediction, assignInstanceNumbers } from '@/lib/analyzer';
 import { DetectedObject, DetectionResult, DetectionSettings } from '@/lib/types';
 import { soundManager } from '@/lib/audio';
 import DetectionCardGrid from '../results/DetectionCardGrid';
@@ -26,8 +26,8 @@ export default function VideoDetector({ settings, onSaveToHistory }: VideoDetect
   const isDetectingRef = useRef<boolean>(false);
 
   const sampleVideos = [
-    { label: 'Street Traffic', url: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4' },
-    { label: 'Wildlife & Nature', url: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerEscapes.mp4' },
+    { label: 'Vehicles & Street Traffic', url: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4' },
+    { label: 'Technology & Displays', url: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerEscapes.mp4' },
   ];
 
   const handleVideoUpload = (file: File) => {
@@ -35,19 +35,6 @@ export default function VideoDetector({ settings, onSaveToHistory }: VideoDetect
     const url = URL.createObjectURL(file);
     setVideoSrc(url);
     if (settings.soundEnabled) soundManager.playDetectionPing();
-  };
-
-  const togglePlayPause = () => {
-    const video = videoRef.current;
-    if (!video) return;
-
-    if (isPlaying) {
-      video.pause();
-      setIsPlaying(false);
-    } else {
-      video.play();
-      setIsPlaying(true);
-    }
   };
 
   // Video Frame Loop
@@ -70,13 +57,14 @@ export default function VideoDetector({ settings, onSaveToHistory }: VideoDetect
         if (ctx) {
           ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
 
-          const rawPredictions = await detectObjectsInElement(video, settings.confidenceThreshold);
-          const enhanced = rawPredictions.map((pred, idx) =>
-            enhancePrediction(pred, idx, ctx, canvas.width, canvas.height)
-          );
+          const rawPredictions = await detectObjectsInElement(video, settings.confidenceThreshold, ctx);
+          const enhanced: DetectedObject[] = rawPredictions
+            .map((pred, idx) => enhancePrediction(pred, idx, ctx, canvas.width, canvas.height))
+            .filter((item): item is DetectedObject => item !== null);
 
-          setDetectedObjects(enhanced);
-          drawBoundingBoxes(canvas, enhanced);
+          const finalObjects = assignInstanceNumbers(enhanced);
+          setDetectedObjects(finalObjects);
+          drawBoundingBoxes(canvas, finalObjects);
         }
 
         isDetectingRef.current = false;
@@ -118,11 +106,11 @@ export default function VideoDetector({ settings, onSaveToHistory }: VideoDetect
       ctx.roundRect(x, y, w, h, 6);
       ctx.stroke();
 
-      // Label Header
-      const labelText = `${obj.subCategory || obj.displayName} ${Math.round(obj.score * 100)}%`;
+      const labelText = `${obj.instanceLabel || obj.displayName} — ${Math.round(obj.score * 100)}%`;
       ctx.font = 'bold 12px system-ui';
       ctx.fillStyle = 'rgba(5, 7, 15, 0.9)';
-      ctx.fillRect(x, Math.max(0, y - 22), ctx.measureText(labelText).width + 12, 20);
+      const textWidth = ctx.measureText(labelText).width;
+      ctx.fillRect(x, Math.max(0, y - 22), textWidth + 12, 20);
       ctx.fillStyle = strokeColor;
       ctx.fillText(labelText, x + 6, Math.max(14, y - 8));
     });
@@ -139,10 +127,10 @@ export default function VideoDetector({ settings, onSaveToHistory }: VideoDetect
           <div>
             <h2 className="text-xl font-bold text-white">Video AI Analyzer</h2>
             <p className="text-xs text-gray-400">
-              Upload MP4, WEBM, or MOV videos for continuous frame-by-frame object detection.
+              Upload MP4, WEBM, or MOV videos for continuous frame-by-frame non-living object detection.
             </p>
-            <p className="text-[10px] text-neon-cyan mt-1 font-mono uppercase bg-neon-cyan/10 inline-block px-2 py-0.5 rounded border border-neon-cyan/20">
-              Note: Video mode uses lightweight local detection (80 basic categories) to preserve AI quotas.
+            <p className="text-[10px] text-rose-400 mt-1 font-mono uppercase bg-rose-950/30 inline-block px-2.5 py-0.5 rounded border border-rose-500/30">
+              Strict Living Filter Active: Ignores all people, animals, and vegetation in video frames.
             </p>
           </div>
         </div>
@@ -186,7 +174,7 @@ export default function VideoDetector({ settings, onSaveToHistory }: VideoDetect
           </div>
 
           <div className="space-y-2">
-            <h3 className="text-lg font-bold text-white">Drag & Drop Your Video File</h3>
+            <h3 className="text-lg font-bold text-white">Drag &amp; Drop Your Video File</h3>
             <p className="text-xs text-gray-400 max-w-sm mx-auto">
               Supports MP4, WEBM, MOV files up to 100MB.
             </p>

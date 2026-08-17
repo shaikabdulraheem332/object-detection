@@ -10,9 +10,10 @@ import {
   Download,
   AlertCircle,
   Cpu,
+  Box,
 } from 'lucide-react';
 import { detectObjectsInElement } from '@/lib/tfjs';
-import { enhancePrediction } from '@/lib/analyzer';
+import { enhancePrediction, assignInstanceNumbers } from '@/lib/analyzer';
 import { analyzeWithGeminiClientSide } from '@/lib/geminiClient';
 import { DetectedObject, DetectionResult, DetectionSettings } from '@/lib/types';
 import { soundManager } from '@/lib/audio';
@@ -31,20 +32,19 @@ export default function ImageDetector({ settings, onSaveToHistory }: ImageDetect
   const [dragActive, setDragActive] = useState<boolean>(false);
   const [hoveredObjId, setHoveredObjId] = useState<string | null>(null);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
+  const [selectedSampleHint, setSelectedSampleHint] = useState<string | null>(null);
 
   const imgRef = useRef<HTMLImageElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
-  // Demo sample images covering Lions, Ants, Moon, Chargers, Animals & Leaders
+  // Non-Living Physical Object sample scenes
   const sampleImages = [
-    { label: 'African Lion Wildlife', url: 'https://images.unsplash.com/photo-1546182990-dffeafbe841d?w=800&auto=format&fit=crop&q=80', hint: 'lion' },
-    { label: 'Ants & Insect Colony', url: 'https://images.unsplash.com/photo-1590483736622-39da86788790?w=800&auto=format&fit=crop&q=80', hint: 'ant' },
-    { label: 'The Moon (Celestial)', url: 'https://images.unsplash.com/photo-1522030299830-16b8d3d049fe?w=800&auto=format&fit=crop&q=80', hint: 'moon' },
-    { label: 'Phone Charger & Cable', url: 'https://images.unsplash.com/photo-1583863788434-e58a36330cf0?w=800&auto=format&fit=crop&q=80', hint: 'charger' },
-    { label: 'Patterned Cloth & Fabric', url: 'https://images.unsplash.com/photo-1579546929518-9e396f3cc809?w=800&auto=format&fit=crop&q=80', hint: 'cloth' },
-    { label: 'Horse (Equine Mammal)', url: 'https://images.unsplash.com/photo-1553284965-83fd3e82fa5a?w=800&auto=format&fit=crop&q=80', hint: 'horse' },
-    { label: 'Domestic Cat & Feline', url: 'https://images.unsplash.com/photo-1514888286974-6c03e2ca1dba?w=800&auto=format&fit=crop&q=80', hint: 'cat' },
-    { label: 'Dr. A.P.J. Abdul Kalam', url: 'https://images.unsplash.com/photo-1544717305-2782549b5136?w=800&auto=format&fit=crop&q=80', hint: 'abdul kalam' },
+    { label: 'Desk Setup (Laptop, Phone, Chair)', url: 'https://images.unsplash.com/photo-1498050108023-c5249f4df085?w=800&auto=format&fit=crop&q=80', hint: 'laptop desk' },
+    { label: 'Workstation (Monitor, Keyboard, Mouse)', url: 'https://images.unsplash.com/photo-1527443224154-c4a3942d3acf?w=800&auto=format&fit=crop&q=80', hint: 'monitor keyboard' },
+    { label: 'Stationery & Notebook', url: 'https://images.unsplash.com/photo-1544716278-ca5e3f4abd8c?w=800&auto=format&fit=crop&q=80', hint: 'notebook pen' },
+    { label: 'Mobile Phone & Headphones', url: 'https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=800&auto=format&fit=crop&q=80', hint: 'headphones phone' },
+    { label: 'Water Bottle & Mug', url: 'https://images.unsplash.com/photo-1602143407151-7111542de6e8?w=800&auto=format&fit=crop&q=80', hint: 'bottle mug' },
+    { label: 'Backpack & Travel Gear', url: 'https://images.unsplash.com/photo-1553062407-98eeb64c6a62?w=800&auto=format&fit=crop&q=80', hint: 'backpack gear' },
   ];
 
   const handleFileUpload = (file: File) => {
@@ -74,8 +74,6 @@ export default function ImageDetector({ settings, onSaveToHistory }: ImageDetect
     }
   };
 
-  const [selectedSampleHint, setSelectedSampleHint] = useState<string | null>(null);
-
   const handleProcessImage = async () => {
     const img = imgRef.current;
     const canvas = canvasRef.current;
@@ -93,16 +91,15 @@ export default function ImageDetector({ settings, onSaveToHistory }: ImageDetect
         ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
       }
 
-      // Model detection with canvas element passed for exact resolution alignment
+      // Model detection on canvas element
       const rawPredictions = await detectObjectsInElement(canvas, settings.confidenceThreshold, ctx);
       const duration = Math.round(performance.now() - startTime);
       setInferenceTime(duration);
 
-      let enhanced: DetectedObject[] = rawPredictions.map((pred, idx) =>
-        enhancePrediction(pred, idx, ctx, canvas.width, canvas.height, selectedSampleHint)
-      );
+      let enhanced: DetectedObject[] = rawPredictions
+        .map((pred, idx) => enhancePrediction(pred, idx, ctx, canvas.width, canvas.height, selectedSampleHint))
+        .filter((item): item is DetectedObject => item !== null);
 
-      // Try server /api/analyze route or fallback to client-side Gemini AI for static hosting (GitHub Pages)
       try {
         const res = await fetch('/api/analyze', {
           method: 'POST',
@@ -120,7 +117,6 @@ export default function ImageDetector({ settings, onSaveToHistory }: ImageDetect
             enhanced = data.enhancedObjects;
           }
         } else {
-          // GitHub Pages static export — run client-side Gemini AI
           const clientResults = await analyzeWithGeminiClientSide(
             imageSrc,
             enhanced,
@@ -132,7 +128,6 @@ export default function ImageDetector({ settings, onSaveToHistory }: ImageDetect
           }
         }
       } catch (apiError) {
-        // Fallback to client-side Gemini AI
         const clientResults = await analyzeWithGeminiClientSide(
           imageSrc,
           enhanced,
@@ -144,10 +139,12 @@ export default function ImageDetector({ settings, onSaveToHistory }: ImageDetect
         }
       }
 
-      setDetectedObjects(enhanced);
-      drawBoundingBoxes(canvas, enhanced, hoveredObjId);
+      // Filter living items & assign multi-object instance labels (#1, #2...)
+      const finalObjects = assignInstanceNumbers(enhanced);
+      setDetectedObjects(finalObjects);
+      drawBoundingBoxes(canvas, finalObjects, hoveredObjId);
 
-      if (settings.soundEnabled && enhanced.length > 0) {
+      if (settings.soundEnabled && finalObjects.length > 0) {
         soundManager.playDetectionPing();
       }
 
@@ -156,15 +153,14 @@ export default function ImageDetector({ settings, onSaveToHistory }: ImageDetect
         timestamp: Date.now(),
         sourceType: 'image',
         thumbnailUrl: imageSrc,
-        objects: enhanced,
+        objects: finalObjects,
         inferenceTimeMs: duration,
-        totalObjectsCount: enhanced.length,
+        totalObjectsCount: finalObjects.length,
       };
 
       onSaveToHistory(resultItem);
     } catch (err) {
-      console.error('Image processing failed', err);
-      setErrorMsg('Failed to process image. Please try another image file.');
+      console.error('Image processing error', err);
     } finally {
       setIsProcessing(false);
     }
@@ -183,65 +179,37 @@ export default function ImageDetector({ settings, onSaveToHistory }: ImageDetect
     objects.forEach((obj) => {
       const [x, y, w, h] = obj.bbox;
       const isHighlight = highlightId === obj.id;
-      const strokeColor = isHighlight
-        ? '#ff007f'
-        : settings.boxColorTheme === 'purple'
-          ? '#9d4edd'
-          : settings.boxColorTheme === 'emerald'
-            ? '#00ff9d'
-            : '#00f3ff';
+      const strokeColor = isHighlight ? '#ff007f' : '#00f3ff';
 
       ctx.shadowColor = strokeColor;
-      ctx.shadowBlur = isHighlight ? 20 : 12;
+      ctx.shadowBlur = 12;
       ctx.strokeStyle = strokeColor;
-      ctx.lineWidth = isHighlight ? 4 : 3;
+      ctx.lineWidth = 3;
 
       ctx.beginPath();
-      ctx.roundRect(x, y, w, h, 8);
+      ctx.roundRect(x, y, w, h, 6);
       ctx.stroke();
 
-      if (isHighlight) {
-        ctx.fillStyle = `${strokeColor}22`;
-        ctx.fill();
-      }
-
-      const crosshairSize = Math.min(w, h, 20);
-      ctx.lineWidth = 4;
-      ctx.beginPath();
-      ctx.moveTo(x, y + crosshairSize);
-      ctx.lineTo(x, y);
-      ctx.lineTo(x + crosshairSize, y);
-      ctx.stroke();
-
-      const labelText = `${obj.subCategory || obj.displayName} ${Math.round(obj.score * 100)}%`;
-      ctx.font = 'bold 13px system-ui, sans-serif';
+      const labelText = `${obj.instanceLabel || obj.displayName} — ${Math.round(obj.score * 100)}%`;
+      ctx.font = 'bold 12px system-ui';
+      ctx.fillStyle = 'rgba(5, 7, 15, 0.9)';
       const textWidth = ctx.measureText(labelText).width;
-      const pillWidth = textWidth + 16;
-      const pillHeight = 24;
+      ctx.fillRect(x, Math.max(0, y - 24), textWidth + 16, 22);
 
-      const pillX = Math.max(0, Math.min(canvas.width - pillWidth, x));
-      const pillY = Math.max(0, y - pillHeight - 6);
-
-      ctx.shadowBlur = 8;
-      ctx.fillStyle = 'rgba(7, 12, 24, 0.9)';
-      ctx.beginPath();
-      ctx.roundRect(pillX, pillY, pillWidth, pillHeight, 6);
-      ctx.fill();
-      ctx.strokeStyle = strokeColor;
-      ctx.lineWidth = 1.5;
-      ctx.stroke();
-
-      ctx.shadowBlur = 0;
       ctx.fillStyle = strokeColor;
-      ctx.fillText(labelText, pillX + 8, pillY + 16);
+      ctx.fillText(labelText, x + 8, Math.max(14, y - 8));
     });
   };
 
   useEffect(() => {
-    if (imageSrc) {
-      handleProcessImage();
+    if (imageSrc && imgRef.current) {
+      if (imgRef.current.complete) {
+        handleProcessImage();
+      } else {
+        imgRef.current.onload = () => handleProcessImage();
+      }
     }
-  }, [imageSrc, settings.confidenceThreshold, settings.boxColorTheme]);
+  }, [imageSrc]);
 
   useEffect(() => {
     if (canvasRef.current && detectedObjects.length > 0) {
@@ -251,146 +219,118 @@ export default function ImageDetector({ settings, onSaveToHistory }: ImageDetect
 
   return (
     <div className="space-y-6 max-w-5xl mx-auto">
-      {/* Section Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 glass-panel p-6 rounded-3xl border border-white/10">
-        <div className="flex items-center gap-3">
-          <div className="p-3 rounded-2xl bg-gradient-to-br from-neon-purple/20 to-neon-cyan/20 border border-neon-purple/40 text-neon-purple">
-            <ImageIcon className="w-6 h-6" />
-          </div>
-          <div>
-            <h2 className="text-xl font-bold text-white flex items-center gap-2">
-              Image AI Analyzer & Deep Knowledge System
-              <span className="text-xs font-mono text-neon-cyan px-2 py-0.5 rounded bg-neon-cyan/10 border border-neon-cyan/30">
-                Hybrid Detection
-              </span>
-            </h2>
-            <p className="text-xs text-gray-400">
-              Detect sunglasses, birds, smartphones, tools, humans, and view deep AI uses & specifications.
-            </p>
-          </div>
+      {/* Upload Header / Dropzone */}
+      <div
+        onDragOver={(e) => {
+          e.preventDefault();
+          setDragActive(true);
+        }}
+        onDragLeave={() => setDragActive(false)}
+        onDrop={handleDrop}
+        className={`glass-panel p-8 sm:p-10 rounded-3xl border-2 border-dashed transition-all text-center space-y-4 ${
+          dragActive
+            ? 'border-neon-cyan bg-neon-cyan/10 scale-[1.01]'
+            : 'border-white/20 hover:border-white/40'
+        }`}
+      >
+        <div className="mx-auto w-16 h-16 rounded-2xl bg-gradient-to-br from-neon-cyan/20 to-neon-purple/20 border border-neon-cyan/40 flex items-center justify-center text-neon-cyan shadow-neon-cyan">
+          <Upload className="w-8 h-8" />
         </div>
 
-        {imageSrc && (
-          <button
-            onClick={() => {
-              setImageSrc(null);
-              setSelectedSampleHint(null);
-              setDetectedObjects([]);
-            }}
-            className="flex items-center gap-2 px-4 py-2 rounded-xl glass-panel-interactive text-xs font-semibold text-gray-300 hover:text-white"
-          >
-            <RefreshCw className="w-4 h-4" />
-            <span>Upload New Image</span>
-          </button>
-        )}
+        <div className="space-y-1">
+          <h3 className="text-lg font-bold text-white">
+            Upload Image for Non-Living Object Detection
+          </h3>
+          <p className="text-xs text-gray-400 max-w-md mx-auto">
+            Detects laptops, phones, chairs, desks, mugs, pens, backpacks, tools, and vehicles.
+            Living organisms are automatically filtered out.
+          </p>
+        </div>
+
+        <div className="flex flex-wrap justify-center gap-3 pt-2">
+          <label className="cursor-pointer px-6 py-3 rounded-2xl bg-gradient-to-r from-neon-cyan to-blue-600 text-cyber-950 font-bold text-xs shadow-neon-cyan hover:scale-105 active:scale-95 transition-all">
+            <span>SELECT IMAGE FILE</span>
+            <input
+              type="file"
+              accept="image/*"
+              className="hidden"
+              onChange={(e) => {
+                if (e.target.files && e.target.files[0]) {
+                  handleFileUpload(e.target.files[0]);
+                }
+              }}
+            />
+          </label>
+        </div>
+
+        {/* Demo Sample Images */}
+        <div className="pt-4 border-t border-white/10">
+          <p className="text-[11px] font-mono text-gray-400 mb-3 uppercase tracking-wider">
+            Or Click a Sample Non-Living Image:
+          </p>
+          <div className="flex flex-wrap justify-center gap-2">
+            {sampleImages.map((sample, idx) => (
+              <button
+                key={idx}
+                onClick={() => {
+                  setSelectedSampleHint(sample.hint);
+                  setImageSrc(sample.url);
+                }}
+                className="px-3 py-1.5 rounded-xl glass-panel text-xs text-gray-300 border border-white/10 hover:border-neon-cyan hover:text-neon-cyan transition-all"
+              >
+                {sample.label}
+              </button>
+            ))}
+          </div>
+        </div>
       </div>
 
       {errorMsg && (
-        <div className="flex items-center gap-2 p-4 rounded-2xl bg-laser-pink/10 border border-laser-pink/40 text-laser-pink text-xs">
+        <div className="glass-panel p-4 rounded-2xl border border-rose-500/40 text-rose-300 text-xs flex items-center gap-2">
           <AlertCircle className="w-4 h-4 shrink-0" />
           <span>{errorMsg}</span>
         </div>
       )}
 
-      {/* Upload Dropzone */}
-      {!imageSrc && (
-        <div
-          onDragOver={(e) => {
-            e.preventDefault();
-            setDragActive(true);
-          }}
-          onDragLeave={() => setDragActive(false)}
-          onDrop={handleDrop}
-          className={`glass-panel p-8 sm:p-12 rounded-3xl border-2 border-dashed text-center space-y-6 transition-all duration-300 ${dragActive
-              ? 'border-neon-cyan bg-neon-cyan/10 shadow-neon-cyan'
-              : 'border-white/20 hover:border-neon-cyan/50'
-            }`}
-        >
-          <div className="w-16 h-16 rounded-2xl bg-cyber-900 border border-white/10 flex items-center justify-center mx-auto shadow-neon-purple">
-            <Upload className="w-8 h-8 text-neon-cyan animate-bounce" />
-          </div>
-
-          <div className="space-y-2">
-            <h3 className="text-lg font-bold text-white">Drag & Drop Your Image Here</h3>
-            <p className="text-xs text-gray-400 max-w-sm mx-auto">
-              Supports PNG, JPG, JPEG, WEBP files up to 25MB.
-            </p>
-          </div>
-
-          <div>
-            <label className="inline-flex items-center gap-2 px-6 py-3.5 rounded-2xl bg-gradient-to-r from-neon-cyan to-neon-purple text-cyber-950 font-bold text-xs shadow-neon-cyan hover:scale-105 transition-transform cursor-pointer">
-              <Upload className="w-4 h-4" />
-              <span>BROWSE IMAGE FILE</span>
-              <input
-                type="file"
-                accept="image/*"
-                className="hidden"
-                onChange={(e) => e.target.files?.[0] && handleFileUpload(e.target.files[0])}
-              />
-            </label>
-          </div>
-
-          {/* Sample Images Section */}
-          <div className="pt-6 border-t border-white/10 space-y-3">
-            <span className="text-xs font-mono text-gray-400 uppercase tracking-widest">
-              Or Try A Sample Demo Image
-            </span>
-            <div className="flex flex-wrap justify-center gap-3">
-              {sampleImages.map((sample, idx) => (
-                <button
-                  key={idx}
-                  onClick={() => {
-                    setSelectedSampleHint(sample.hint || null);
-                    setImageSrc(sample.url);
-                  }}
-                  className="flex items-center gap-2 px-3 py-2 rounded-xl glass-panel-interactive text-xs text-gray-300 hover:text-neon-cyan"
-                >
-                  <Sparkles className="w-3.5 h-3.5 text-neon-cyan" />
-                  <span>{sample.label}</span>
-                </button>
-              ))}
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Main Image Stage & Canvas overlay */}
+      {/* Main Image Display & Canvas Overlay */}
       {imageSrc && (
         <div className="space-y-6">
-          <div className="relative glass-panel rounded-3xl overflow-hidden border border-white/10 flex items-center justify-center bg-cyber-950 p-2 sm:p-4 min-h-[350px]">
+          <div className="relative glass-panel p-3 rounded-3xl border border-white/10 overflow-hidden flex items-center justify-center min-h-[300px]">
+            {/* Base Image */}
+            <img
+              ref={imgRef}
+              src={imageSrc}
+              alt="Scan ROI"
+              crossOrigin="anonymous"
+              className="max-h-[600px] w-auto object-contain rounded-2xl"
+            />
+
+            {/* Bounding Box Overlay Canvas */}
+            <canvas
+              ref={canvasRef}
+              className="absolute inset-0 w-full h-full pointer-events-none rounded-2xl"
+            />
+
+            {/* Processing Spinner Overlay */}
             {isProcessing && (
-              <div className="absolute inset-0 z-20 bg-cyber-950/80 backdrop-blur-sm flex flex-col items-center justify-center space-y-3">
-                <Cpu className="w-10 h-10 text-neon-cyan animate-spin" />
-                <span className="text-xs font-mono text-neon-cyan font-bold tracking-widest animate-pulse">
-                  HYBRID AI FEATURE INFERENCE RUNNING...
+              <div className="absolute inset-0 bg-cyber-950/80 backdrop-blur-sm flex flex-col items-center justify-center space-y-3 rounded-2xl z-20">
+                <RefreshCw className="w-8 h-8 text-neon-cyan animate-spin" />
+                <span className="text-xs font-mono text-neon-cyan tracking-wider">
+                  ANALYZING NON-LIVING OBJECTS & APPLYING LIVING FILTER...
                 </span>
               </div>
             )}
-
-            <div className="relative inline-block max-w-full">
-              <img
-                ref={imgRef}
-                src={imageSrc}
-                alt="Source preview"
-                onLoad={handleProcessImage}
-                className="max-h-[600px] w-auto h-auto rounded-2xl object-contain block mx-auto"
-                crossOrigin="anonymous"
-              />
-
-              <canvas
-                ref={canvasRef}
-                className="absolute inset-0 w-full h-full pointer-events-none rounded-2xl"
-              />
-            </div>
           </div>
 
-          {/* Results Breakdown Grid */}
-          <DetectionCardGrid
-            objects={detectedObjects}
-            inferenceTimeMs={inferenceTime}
-            hoveredObjId={hoveredObjId}
-            onHoverObject={setHoveredObjId}
-          />
+          {/* Results Grid Panel */}
+          {!isProcessing && (
+            <DetectionCardGrid
+              objects={detectedObjects}
+              inferenceTimeMs={inferenceTime}
+              onHoverObject={setHoveredObjId}
+              hoveredObjId={hoveredObjId}
+            />
+          )}
         </div>
       )}
     </div>

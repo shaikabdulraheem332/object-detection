@@ -8,10 +8,11 @@ import {
   Radio,
   Sparkles,
   ShieldCheck,
-  Zap,
   Target,
   Layers,
   Cpu,
+  EyeOff,
+  Box,
 } from 'lucide-react';
 import { motion } from 'framer-motion';
 
@@ -20,11 +21,11 @@ interface HeroProps {
 }
 
 export default function Hero({ onSelectTab }: HeroProps) {
-  const categoryPills = [
-    'Humans', 'Boy', 'Girl', 'Man', 'Woman', 'Child',
-    'Animals', 'Birds', 'Vehicles', 'Cars', 'Trees',
-    'Buildings', 'Furniture', 'Electronics', 'Food',
-    'Clothes', 'Everyday Objects', 'Tools', 'Sports'
+  const nonLivingCategoryPills = [
+    'Mobile Phones', 'Laptops', 'Office Chairs', 'Desks', 'Water Bottles',
+    'Ballpoint Pens', 'Headphones', 'Backpacks', 'Table Lamps', 'Monitors',
+    'Keyboards', 'Books', 'Sneakers', 'Sunglasses', 'Vehicles', 'Tools',
+    'Kitchen Utensils', 'Household Items', 'Traffic Signs', 'Buildings'
   ];
 
   return (
@@ -43,7 +44,7 @@ export default function Hero({ onSelectTab }: HeroProps) {
           className="inline-flex items-center gap-2 px-4 py-2 rounded-full glass-panel border border-neon-cyan/40 shadow-neon-cyan text-xs font-mono text-neon-cyan"
         >
           <Sparkles className="w-4 h-4 text-neon-cyan animate-pulse" />
-          <span>REAL-TIME 3D AI OBJECT DETECTION ENGINE v4.2</span>
+          <span>NON-LIVING OBJECT DETECTION SYSTEM v5.0</span>
           <span className="flex h-2 w-2 relative">
             <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-neon-cyan opacity-75" />
             <span className="relative inline-flex rounded-full h-2 w-2 bg-neon-cyan" />
@@ -57,9 +58,9 @@ export default function Hero({ onSelectTab }: HeroProps) {
           transition={{ duration: 0.7, delay: 0.1 }}
           className="text-4xl sm:text-6xl md:text-7xl font-extrabold tracking-tight leading-tight"
         >
-          See the World Through <br />
+          Dedicated AI for <br />
           <span className="bg-clip-text text-transparent bg-gradient-to-r from-neon-cyan via-white to-neon-purple text-neon-glow-cyan">
-            Artificial Intelligence
+            Non-Living Physical Objects
           </span>
         </motion.h1>
 
@@ -70,8 +71,8 @@ export default function Hero({ onSelectTab }: HeroProps) {
           transition={{ duration: 0.7, delay: 0.2 }}
           className="max-w-3xl mx-auto text-base sm:text-lg md:text-xl text-gray-300 font-normal leading-relaxed"
         >
-          Capture any image or video and instantly identify people, animals, vehicles,
-          electronics, furniture, food, plants, tools, and thousands of everyday objects with high precision.
+          Instantly detect and identify <strong className="text-neon-cyan">EVERY non-living physical item</strong> in photos, videos, and camera streams.
+          Automatically <strong className="text-rose-400">ignores all living organisms</strong> (humans, animals, birds, insects, plants, and biological items).
         </motion.p>
 
         {/* Interactive Action Buttons */}
@@ -119,7 +120,7 @@ export default function Hero({ onSelectTab }: HeroProps) {
           </button>
         </motion.div>
 
-        {/* Floating Category Badges */}
+        {/* Category Pills */}
         <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
@@ -127,10 +128,10 @@ export default function Hero({ onSelectTab }: HeroProps) {
           className="pt-6"
         >
           <p className="text-xs font-mono text-gray-400 uppercase tracking-widest mb-3">
-            RECOGNIZES THOUSANDS OF OBJECT CATEGORIES
+            SPECIFIC NON-LIVING OBJECT CATEGORIES
           </p>
           <div className="flex flex-wrap justify-center gap-2 max-w-4xl mx-auto">
-            {categoryPills.map((pill, idx) => (
+            {nonLivingCategoryPills.map((pill, idx) => (
               <span
                 key={idx}
                 className="px-3 py-1.5 rounded-lg glass-panel text-[11px] font-mono text-gray-300 border border-white/10 hover:border-neon-cyan/50 hover:text-neon-cyan transition-colors"
@@ -148,28 +149,28 @@ export default function Hero({ onSelectTab }: HeroProps) {
           transition={{ duration: 0.8, delay: 0.5 }}
           className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4 pt-10 text-left"
         >
-          <div className="glass-panel p-4 rounded-2xl space-y-2 border border-white/10">
-            <Cpu className="w-6 h-6 text-neon-cyan" />
-            <h3 className="text-sm font-bold text-white">Browser Local AI</h3>
-            <p className="text-xs text-gray-400">100% Client-side TFJS inference for instant zero-latency detection.</p>
+          <div className="glass-panel p-4 rounded-2xl space-y-2 border border-rose-500/20 bg-rose-950/10">
+            <EyeOff className="w-6 h-6 text-rose-400" />
+            <h3 className="text-sm font-bold text-white">Living-Thing Filter</h3>
+            <p className="text-xs text-gray-400">Strict stage filtering completely excludes humans, animals, birds, insects, and plants.</p>
           </div>
 
-          <div className="glass-panel p-4 rounded-2xl space-y-2 border border-white/10">
+          <div className="glass-panel p-4 rounded-2xl space-y-2 border border-neon-cyan/20">
+            <Box className="w-6 h-6 text-neon-cyan" />
+            <h3 className="text-sm font-bold text-white">Every Object Detection</h3>
+            <p className="text-xs text-gray-400">Detects every single visible non-living physical item individually with bounding boxes.</p>
+          </div>
+
+          <div className="glass-panel p-4 rounded-2xl space-y-2 border border-neon-purple/20">
             <Target className="w-6 h-6 text-neon-purple" />
-            <h3 className="text-sm font-bold text-white">Bounding Box HUD</h3>
-            <p className="text-xs text-gray-400">Glowing neon target crosshairs with real-time confidence scores.</p>
+            <h3 className="text-sm font-bold text-white">Specific Object Naming</h3>
+            <p className="text-xs text-gray-400">Uses accurate names: "Mobile Phone", "Office Chair", "Water Bottle", "Ballpoint Pen", "Sneaker".</p>
           </div>
 
-          <div className="glass-panel p-4 rounded-2xl space-y-2 border border-white/10">
-            <Layers className="w-6 h-6 text-laser-pink" />
-            <h3 className="text-sm font-bold text-white">Color & Size Analysis</h3>
-            <p className="text-xs text-gray-400">Extracts ROI dominant colors, quad spatial placement & sizes.</p>
-          </div>
-
-          <div className="glass-panel p-4 rounded-2xl space-y-2 border border-white/10">
-            <ShieldCheck className="w-6 h-6 text-neon-emerald" />
-            <h3 className="text-sm font-bold text-white">Private & Secure</h3>
-            <p className="text-xs text-gray-400">No media uploaded to servers. All image processing stays on device.</p>
+          <div className="glass-panel p-4 rounded-2xl space-y-2 border border-neon-emerald/20">
+            <Layers className="w-6 h-6 text-neon-emerald" />
+            <h3 className="text-sm font-bold text-white">Hierarchical Taxonomy</h3>
+            <p className="text-xs text-gray-400">Taxonomy breakdown from Category to Subcategory to Specific Physical Object.</p>
           </div>
         </motion.div>
 

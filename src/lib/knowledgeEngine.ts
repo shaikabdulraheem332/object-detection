@@ -3653,7 +3653,7 @@ export function getKnowledgeForObject(
   return generateGenericKnowledge(displayName, category);
 }
 
-function generateGenericKnowledge(displayName: string, category: ObjectCategory): AIKnowledgeExplanation {
+function generateGenericKnowledge(displayName: string, category: ObjectCategory | string): AIKnowledgeExplanation {
   switch (category) {
     case 'Human':
       return {

@@ -1,5 +1,5 @@
 import type * as cocoSsd from '@tensorflow-models/coco-ssd';
-import { detectVisualFeatureFallbacks } from './analyzer';
+import { detectVisualFeatureFallbacks, isLivingThing } from './analyzer';
 
 let modelPromise: Promise<cocoSsd.ObjectDetection> | null = null;
 let cachedModel: cocoSsd.ObjectDetection | null = null;
@@ -24,28 +24,28 @@ export async function loadCocoModel(): Promise<cocoSsd.ObjectDetection> {
 
 export async function detectObjectsInElement(
   element: HTMLImageElement | HTMLVideoElement | HTMLCanvasElement,
-  threshold: number = 0.5,
+  threshold: number = 0.4,
   ctx?: CanvasRenderingContext2D | null
 ): Promise<{ class: string; score: number; bbox: [number, number, number, number] }[]> {
   try {
     const model = await loadCocoModel();
-    const predictions = await model.detect(element, 15, threshold);
-    
-    const formatted = predictions.map((pred) => ({
-      class: pred.class,
-      score: pred.score,
-      bbox: pred.bbox as [number, number, number, number],
-    }));
+    // Increase maxNumBoxes to 50 to detect ALL visible non-living objects individually
+    const predictions = await model.detect(element, 50, threshold);
 
-    // If standard COCO-SSD model returns no detection or missed fine-grained items,
-    // execute visual feature fallback detection on canvas context if available!
+    // STRICT LIVING THING FILTER STAGE: Immediately discard humans, animals, plants, biological food
+    const formatted = predictions
+      .filter((pred) => !isLivingThing(pred.class))
+      .map((pred) => ({
+        class: pred.class,
+        score: pred.score,
+        bbox: pred.bbox as [number, number, number, number],
+      }));
+
     if (formatted.length === 0 && ctx) {
       const width = ctx.canvas?.width || (element as HTMLImageElement).naturalWidth || 640;
       const height = ctx.canvas?.height || (element as HTMLImageElement).naturalHeight || 480;
       const featureDetections = detectVisualFeatureFallbacks(ctx, width, height);
-      if (featureDetections.length > 0) {
-        return featureDetections;
-      }
+      return featureDetections.filter((item) => !isLivingThing(item.class));
     }
 
     return formatted;
@@ -54,7 +54,7 @@ export async function detectObjectsInElement(
     if (ctx) {
       const width = ctx.canvas?.width || (element as HTMLImageElement).naturalWidth || 640;
       const height = ctx.canvas?.height || (element as HTMLImageElement).naturalHeight || 480;
-      return detectVisualFeatureFallbacks(ctx, width, height);
+      return detectVisualFeatureFallbacks(ctx, width, height).filter((item) => !isLivingThing(item.class));
     }
     return [];
   }

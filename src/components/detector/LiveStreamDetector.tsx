@@ -1,9 +1,9 @@
 'use client';
 
 import React, { useState, useRef, useEffect } from 'react';
-import { Radio, RotateCcw, Pause, Play, Eye, Cpu, Camera, VideoOff, AlertCircle, Sparkles } from 'lucide-react';
+import { Radio, RotateCcw, Pause, Play, Eye, Cpu, Camera, VideoOff, AlertCircle, Sparkles, Box } from 'lucide-react';
 import { detectObjectsInElement } from '@/lib/tfjs';
-import { enhancePrediction } from '@/lib/analyzer';
+import { enhancePrediction, assignInstanceNumbers } from '@/lib/analyzer';
 import { analyzeWithGeminiClientSide } from '@/lib/geminiClient';
 import { DetectedObject, DetectionResult, DetectionSettings } from '@/lib/types';
 import { soundManager } from '@/lib/audio';
@@ -67,8 +67,9 @@ export default function LiveStreamDetector({ settings, onSaveToHistory }: LiveSt
         if (clientResults && clientResults.length > 0) enhanced = clientResults;
       }
 
-      setDetectedObjects(enhanced);
-      if (settings.soundEnabled && enhanced.length > 0) soundManager.playDetectionPing();
+      const finalObjects = assignInstanceNumbers(enhanced);
+      setDetectedObjects(finalObjects);
+      if (settings.soundEnabled && finalObjects.length > 0) soundManager.playDetectionPing();
     } catch (e) {
       console.error('AI Scan error', e);
     } finally {
@@ -154,14 +155,15 @@ export default function LiveStreamDetector({ settings, onSaveToHistory }: LiveSt
           }
 
           const rawPredictions = await detectObjectsInElement(canvas, settings.confidenceThreshold, ctx);
-          const enhanced = rawPredictions.map((pred, idx) =>
-            enhancePrediction(pred, idx, ctx, width, height)
-          );
+          const enhanced: DetectedObject[] = rawPredictions
+            .map((pred, idx) => enhancePrediction(pred, idx, ctx, width, height))
+            .filter((item): item is DetectedObject => item !== null);
 
-          setDetectedObjects(enhanced);
-          drawBoundingBoxes(canvas, enhanced);
+          const finalObjects = assignInstanceNumbers(enhanced);
+          setDetectedObjects(finalObjects);
+          drawBoundingBoxes(canvas, finalObjects);
 
-          if (enhanced.length > 0 && Math.random() < 0.05 && settings.soundEnabled) {
+          if (finalObjects.length > 0 && Math.random() < 0.05 && settings.soundEnabled) {
             soundManager.playDetectionPing();
           }
         }
@@ -192,7 +194,6 @@ export default function LiveStreamDetector({ settings, onSaveToHistory }: LiveSt
     ctx.fillStyle = '#05070f';
     ctx.fillRect(0, 0, width, height);
 
-    // Subtle Grid background
     ctx.strokeStyle = '#00f3ff12';
     ctx.lineWidth = 1;
     for (let x = 0; x < width; x += 40) {
@@ -208,67 +209,25 @@ export default function LiveStreamDetector({ settings, onSaveToHistory }: LiveSt
       ctx.stroke();
     }
 
-    // 1. Desktop CPU Tower (Left side)
+    // Laptop & Monitor shapes
     ctx.fillStyle = '#1e293b';
-    ctx.fillRect(width * 0.06, height * 0.2, width * 0.16, height * 0.58);
+    ctx.fillRect(width * 0.25, height * 0.3, width * 0.5, height * 0.4);
     ctx.strokeStyle = '#00f3ff';
     ctx.lineWidth = 2;
-    ctx.strokeRect(width * 0.06, height * 0.2, width * 0.16, height * 0.58);
-    ctx.fillStyle = '#00ff9d';
-    ctx.beginPath();
-    ctx.arc(width * 0.14, height * 0.26, 5, 0, Math.PI * 2);
-    ctx.fill();
-
-    // 2. Computer Monitor Display (Center)
-    ctx.fillStyle = '#0b1329';
-    ctx.fillRect(width * 0.26, height * 0.18, width * 0.46, height * 0.44);
-    ctx.strokeStyle = '#38bdf8';
-    ctx.lineWidth = 2;
-    ctx.strokeRect(width * 0.26, height * 0.18, width * 0.46, height * 0.44);
-    // Monitor Stand
-    ctx.fillStyle = '#334155';
-    ctx.fillRect(width * 0.46, height * 0.62, width * 0.06, height * 0.12);
-
-    // 3. Computer Keyboard (Bottom Center)
-    ctx.fillStyle = '#1e293b';
-    ctx.fillRect(width * 0.3, height * 0.76, width * 0.38, height * 0.15);
-    ctx.strokeStyle = '#a855f7';
-    ctx.lineWidth = 2;
-    ctx.strokeRect(width * 0.3, height * 0.76, width * 0.38, height * 0.15);
-
-    // 4. Optical Computer Mouse (Bottom Right)
-    ctx.fillStyle = '#334155';
-    ctx.beginPath();
-    ctx.ellipse(width * 0.75, height * 0.83, width * 0.035, height * 0.07, 0, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.strokeStyle = '#00f3ff';
-    ctx.stroke();
-
-    // 5. Digital Projector (Top / Ceiling mount)
-    ctx.fillStyle = '#334155';
-    ctx.fillRect(width * 0.42, height * 0.03, width * 0.16, height * 0.11);
-    ctx.strokeStyle = '#ff007f';
-    ctx.strokeRect(width * 0.42, height * 0.03, width * 0.16, height * 0.11);
-    ctx.fillStyle = '#00f3ff';
-    ctx.beginPath();
-    ctx.arc(width * 0.54, height * 0.085, 8, 0, Math.PI * 2);
-    ctx.fill();
+    ctx.strokeRect(width * 0.25, height * 0.3, width * 0.5, height * 0.4);
   };
 
   const drawBoundingBoxes = (canvas: HTMLCanvasElement, objects: DetectedObject[]) => {
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
 
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+
     objects.forEach((obj) => {
       const [x, y, w, h] = obj.bbox;
-      const strokeColor =
-        settings.boxColorTheme === 'purple'
-          ? '#9d4edd'
-          : settings.boxColorTheme === 'emerald'
-            ? '#00ff9d'
-            : '#00f3ff';
+      const isHovered = hoveredObjId === obj.id;
+      const strokeColor = isHovered ? '#ff007f' : '#00f3ff';
 
-      // Animated pulsing glow line
       ctx.shadowColor = strokeColor;
       ctx.shadowBlur = 12;
       ctx.strokeStyle = strokeColor;
@@ -278,167 +237,93 @@ export default function LiveStreamDetector({ settings, onSaveToHistory }: LiveSt
       ctx.roundRect(x, y, w, h, 6);
       ctx.stroke();
 
-      // Corner Crosshairs
-      const cSize = Math.min(w, h, 16);
-      ctx.lineWidth = 4;
-      ctx.beginPath();
-      ctx.moveTo(x, y + cSize);
-      ctx.lineTo(x, y);
-      ctx.lineTo(x + cSize, y);
-      ctx.stroke();
-
-      // Label Pill
-      const labelText = `${obj.subCategory || obj.displayName} ${Math.round(obj.score * 100)}%`;
+      const labelText = `${obj.instanceLabel || obj.displayName} — ${Math.round(obj.score * 100)}%`;
       ctx.font = 'bold 12px system-ui';
-      const textWidth = ctx.measureText(labelText).width;
-      const pillWidth = textWidth + 14;
-
-      const pillX = Math.max(0, Math.min(canvas.width - pillWidth, x));
-      const pillY = Math.max(0, y - 24);
-
       ctx.fillStyle = 'rgba(5, 7, 15, 0.9)';
-      ctx.beginPath();
-      ctx.roundRect(pillX, pillY, pillWidth, 22, 6);
-      ctx.fill();
-      ctx.strokeStyle = strokeColor;
-      ctx.lineWidth = 1;
-      ctx.stroke();
+      const textWidth = ctx.measureText(labelText).width;
+      ctx.fillRect(x, Math.max(0, y - 22), textWidth + 12, 20);
 
       ctx.fillStyle = strokeColor;
-      ctx.fillText(labelText, pillX + 6, pillY + 15);
+      ctx.fillText(labelText, x + 6, Math.max(14, y - 8));
     });
   };
 
   return (
     <div className="space-y-6 max-w-5xl mx-auto">
-      {/* Header Controls */}
+      {/* Control Bar */}
       <div className="flex flex-col sm:flex-row items-center justify-between gap-4 glass-panel p-6 rounded-3xl border border-white/10">
         <div className="flex items-center gap-3">
-          <div className="p-3 rounded-2xl bg-gradient-to-br from-neon-cyan/20 to-laser-pink/20 border border-neon-cyan/40 text-neon-cyan">
+          <div className="p-3 rounded-2xl bg-gradient-to-br from-neon-cyan/20 to-neon-purple/20 border border-neon-cyan/40 text-neon-cyan">
             <Radio className="w-6 h-6 animate-pulse" />
           </div>
           <div>
-            <h2 className="text-xl font-bold text-white flex items-center gap-2">
-              Continuous Live AI Stream
-              <span className="text-xs font-mono text-neon-emerald bg-neon-emerald/10 border border-neon-emerald/30 px-2 py-0.5 rounded-full flex items-center gap-1">
-                <span className="w-2 h-2 rounded-full bg-neon-emerald animate-ping" />
-                60 FPS STREAM
+            <div className="flex items-center gap-2">
+              <h2 className="text-xl font-bold text-white">Live Stream Non-Living AI</h2>
+              <span className="text-[10px] font-mono text-neon-cyan bg-neon-cyan/10 px-2 py-0.5 rounded border border-neon-cyan/30">
+                {fps} FPS
               </span>
-            </h2>
+            </div>
             <p className="text-xs text-gray-400">
-              Real-time multi-object identification overlay for CPU, Mouse, Keyboard, Projector & displays.
+              Continuous real-time stream scanning for non-living physical objects.
             </p>
           </div>
         </div>
 
+        {/* Action Controls */}
         <div className="flex items-center gap-2">
-          {/* AI Deep Scan Button */}
+          <button
+            onClick={() => setFacingMode((prev) => (prev === 'user' ? 'environment' : 'user'))}
+            className="flex items-center gap-2 px-3.5 py-2.5 rounded-xl glass-panel-interactive text-xs font-semibold text-gray-200"
+          >
+            <RotateCcw className="w-4 h-4 text-neon-cyan" />
+            <span>FLIP</span>
+          </button>
+
           <button
             onClick={handleAiScan}
             disabled={isAiScanning}
-            className="flex items-center gap-2 px-4 py-2 rounded-xl bg-gradient-to-r from-neon-purple to-neon-cyan text-cyber-950 font-bold text-xs shadow-neon-cyan hover:scale-105 transition-transform disabled:opacity-50"
+            className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-gradient-to-r from-neon-cyan to-neon-purple text-cyber-950 font-bold text-xs shadow-neon-cyan hover:scale-105 active:scale-95 transition-all disabled:opacity-50"
           >
-            <Sparkles className={`w-4 h-4 ${isAiScanning ? 'animate-spin' : ''}`} />
-            <span>{isAiScanning ? 'SCANNING...' : 'AI DEEP SCAN'}</span>
+            <Sparkles className="w-4 h-4" />
+            <span>{isAiScanning ? 'DEEP AI SCANNING...' : 'DEEP AI REFINEMENT'}</span>
           </button>
 
-          {/* Open / Toggle Camera */}
-          {!streamActive ? (
-            <button
-              onClick={startLiveStream}
-              className="flex items-center gap-2 px-4 py-2 rounded-xl bg-neon-cyan text-cyber-950 font-bold text-xs shadow-neon-cyan hover:scale-105 transition-transform"
-            >
-              <Camera className="w-4 h-4" />
-              <span>Open Camera</span>
-            </button>
-          ) : (
-            <button
-              onClick={stopLiveStream}
-              className="flex items-center gap-2 px-4 py-2 rounded-xl glass-panel text-laser-pink text-xs font-semibold border border-laser-pink/40 hover:bg-laser-pink/10"
-            >
-              <VideoOff className="w-4 h-4" />
-              <span>Stop Camera</span>
-            </button>
-          )}
-
-          {/* Pause / Resume */}
           <button
             onClick={() => setIsRunning(!isRunning)}
-            className="flex items-center gap-2 px-4 py-2 rounded-xl glass-panel-interactive text-xs font-bold text-gray-200 hover:text-neon-cyan"
+            className={`flex items-center gap-2 px-5 py-2.5 rounded-xl font-bold text-xs transition-all ${
+              isRunning
+                ? 'bg-rose-500/20 text-rose-300 border border-rose-500/40 hover:bg-rose-500/30'
+                : 'bg-neon-emerald/20 text-neon-emerald border border-neon-emerald/40 hover:bg-neon-emerald/30'
+            }`}
           >
-            {isRunning ? (
-              <>
-                <Pause className="w-4 h-4 text-neon-amber" />
-                <span>Pause AI</span>
-              </>
-            ) : (
-              <>
-                <Play className="w-4 h-4 text-neon-emerald" />
-                <span>Resume AI</span>
-              </>
-            )}
-          </button>
-
-          {/* Flip Camera */}
-          <button
-            onClick={() => setFacingMode((prev) => (prev === 'user' ? 'environment' : 'user'))}
-            className="p-2.5 rounded-xl glass-panel-interactive text-gray-300 hover:text-neon-cyan"
-            title="Flip Camera"
-          >
-            <RotateCcw className="w-4 h-4" />
+            {isRunning ? <Pause className="w-4 h-4" /> : <Play className="w-4 h-4" />}
+            <span>{isRunning ? 'PAUSE' : 'RESUME'}</span>
           </button>
         </div>
       </div>
 
-      {cameraError && (
-        <div className="flex items-center justify-between gap-2 p-4 rounded-2xl bg-neon-amber/10 border border-neon-amber/40 text-neon-amber text-xs">
-          <div className="flex items-center gap-2">
-            <AlertCircle className="w-4 h-4 shrink-0" />
-            <span>{cameraError}</span>
-          </div>
-          <button
-            onClick={startLiveStream}
-            className="px-3 py-1 bg-neon-amber/20 rounded-lg text-white hover:bg-neon-amber/30 text-xs font-bold"
-          >
-            Retry Camera
-          </button>
-        </div>
-      )}
+      {/* Main Viewport */}
+      <div className="relative glass-panel p-3 rounded-3xl border border-white/10 overflow-hidden flex items-center justify-center min-h-[350px] sm:min-h-[480px] bg-cyber-950">
+        <video
+          ref={videoRef}
+          playsInline
+          muted
+          className={`w-full h-auto max-h-[600px] object-cover rounded-2xl ${
+            streamActive ? 'block' : 'hidden'
+          }`}
+        />
 
-      {/* Live Stream Display Viewport */}
-      <div className="relative glass-panel rounded-3xl overflow-hidden border border-white/10 bg-cyber-950 flex items-center justify-center min-h-[400px] p-2 sm:p-4">
-        {/* HUD Top Bar Overlay */}
-        <div className="absolute top-4 left-4 right-4 z-20 flex justify-between items-center pointer-events-none">
-          <div className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-cyber-950/80 backdrop-blur-md border border-white/10 text-xs font-mono text-gray-300">
-            <Cpu className="w-3.5 h-3.5 text-neon-cyan" />
-            <span>FPS: <strong className="text-neon-cyan">{fps}</strong></span>
-          </div>
-
-          <div className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-cyber-950/80 backdrop-blur-md border border-white/10 text-xs font-mono text-gray-300">
-            <Eye className="w-3.5 h-3.5 text-neon-purple" />
-            <span>Active Targets: <strong className="text-neon-purple">{detectedObjects.length}</strong></span>
-          </div>
-        </div>
-
-        <div className="relative w-full flex items-center justify-center">
-          <video
-            ref={videoRef}
-            playsInline
-            muted
-            className="hidden"
-          />
-          <canvas
-            ref={canvasRef}
-            className="w-full max-h-[550px] object-contain rounded-2xl block mx-auto shadow-2xl border border-white/10"
-          />
-        </div>
+        <canvas
+          ref={canvasRef}
+          className="absolute inset-0 w-full h-full pointer-events-none rounded-2xl"
+        />
       </div>
 
-      {/* Detection Cards List */}
+      {/* Results grid panel */}
       <DetectionCardGrid
         objects={detectedObjects}
-        hoveredObjId={hoveredObjId}
         onHoverObject={setHoveredObjId}
+        hoveredObjId={hoveredObjId}
       />
     </div>
   );

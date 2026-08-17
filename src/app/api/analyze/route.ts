@@ -1,13 +1,18 @@
 import { NextResponse } from 'next/server';
 import { GoogleGenAI } from '@google/genai';
-import { DetectedObject } from '@/lib/types';
+import { DetectedObject, ObjectCategory } from '@/lib/types';
 import { getKnowledgeForObject } from '@/lib/knowledgeEngine';
+import { isLivingThing, assignInstanceNumbers, buildObjectHierarchy } from '@/lib/analyzer';
 
 export async function POST(req: Request) {
-  let fallbackObjects: any[] = [];
+  let fallbackObjects: DetectedObject[] = [];
   try {
     const { imageBase64, tfjsObjects, customApiKey } = await req.json();
-    fallbackObjects = tfjsObjects || [];
+    
+    // Filter fallback TFJS objects to strictly exclude living things
+    fallbackObjects = (tfjsObjects || []).filter(
+      (obj: DetectedObject) => !isLivingThing(obj.class, obj.category)
+    );
 
     if (!imageBase64) {
       return NextResponse.json({ error: 'Missing imageBase64' }, { status: 400 });
@@ -16,8 +21,8 @@ export async function POST(req: Request) {
     const apiKey = customApiKey || process.env.GEMINI_API_KEY;
 
     if (!apiKey || apiKey.trim() === '' || apiKey.startsWith('AQ.')) {
-      console.warn("GEMINI_API_KEY is missing or invalid. Returning local detection objects.");
-      return NextResponse.json({ enhancedObjects: fallbackObjects });
+      console.warn("GEMINI_API_KEY is missing or invalid. Returning local non-living detection objects.");
+      return NextResponse.json({ enhancedObjects: assignInstanceNumbers(fallbackObjects) });
     }
 
     const ai = new GoogleGenAI({ apiKey: apiKey.trim() });
@@ -38,41 +43,50 @@ export async function POST(req: Request) {
     }
 
     const prompt = `
-You are the world's most advanced AI computer vision and deep knowledge system.
+You are the world's leading Non-Living Object Detection AI.
 
-${tfjsObjects && tfjsObjects.length > 0 ? `A local object detection model identified the following initial bounding boxes:\n${JSON.stringify(tfjsObjects, null, 2)}\n\nExamine this image thoroughly and ENHANCE or ADD all objects in the scene.` : `Examine this image thoroughly:`}
+STRICT MANDATORY RULE:
+You MUST COMPLETELY IGNORE ALL LIVING THINGS in the image!
+NEVER DETECT OR RETURN:
+- Humans, babies, children, adults, people, faces, bodies
+- Animals, dogs, cats, horses, birds, wildlife, insects, ants, fish, reptiles
+- Plants, trees, flowers, grass, leaves, shrubs, biological vegetation
+- Biological food items (fruits, vegetables, meat, sandwiches, pizza)
 
-CRITICAL IDENTIFICATION RULES:
-1. Detect ALL main subjects in the image, including celestial objects, animals, electronics, cables, clothing, and everyday items:
-   - CELESTIAL / ASTRONOMY: Moon (Full Moon, Crescent, Lunar surface, Craters), Sun, Stars, Clouds, Night Sky. Identify as "The Moon" under Category "Other".
-   - CHARGERS & CABLES: Phone Charger, Mobile Wall Adapter, USB Charging Cable, Power Brick, Power Bank, Electrical Adapter. Identify as "Phone Charger & Power Adapter" under Category "Electronics".
-   - CLOTHING & FABRIC: Clothing, Garments, Shirts, Pants, Dresses, Bedsheets, Blankets, Floral Patterned Fabrics, Textiles, Towels. Identify as "Clothing / Patterned Fabric" under Category "Clothing".
-   - ANIMALS (REAL vs TOY):
-     * Real living Animals: Cat (Felis catus), Rat (Rodent), Mouse, Horse (Equus caballus), Dog, Birds, Peacocks, Tigers, Wildlife. Identify under Category "Animal".
-     * IMPORTANT FOR HORSES: If a REAL LIVING HORSE is present in the image, identify it as "Horse (Equine Mammal)" under Category "Animal"! DO NOT classify a living horse as a toy!
-     * Reserve Category "Toy" ONLY for artificial wooden/plastic rocking horses, ride-on toys, dolls, or plush stuffed animals!
-   - FAMOUS LEADERS & HUMANS: Identify famous figures (e.g. Dr. A.P.J. Abdul Kalam, N. Chandrababu Naidu [Present CM of Andhra Pradesh], Narendra Modi [PM of India], Mahatma Gandhi, Subhas Chandra Bose, Bhagat Singh, Albert Einstein, Steve Jobs, Elon Musk, etc.) with their full name under Category "Human".
-   - TECH HARDWARE: Headphones, Headset, Earbuds, Computer Mouse, Keyboard, Laptop, Monitor, CPU Tower, Projector.
-   - MEDICAL & TABLETS: Medicine Tablets, Pill Blister Foil Strips, Capsules.
+FOCUS EXCLUSIVELY ON NON-LIVING PHYSICAL OBJECTS.
+Detect EVERY visible non-living physical object individually! (e.g. laptop, mobile phone, keyboard, mouse, monitor, water bottle, notebook, pen, headphones, backpack, chair, desk, lamp, clock, shoes, jacket).
 
-Return a JSON array of identified objects.
+CORRECT SPECIFIC OBJECT NAMING:
+Do not use overly generic labels when specific accurate names are visible:
+- BAD: "Electronic Device" -> BETTER: "Mobile Phone" or "Smartphone"
+- BAD: "Furniture" -> BETTER: "Office Chair"
+- BAD: "Container" -> BETTER: "Water Bottle"
+- BAD: "Computer" -> BETTER: "Laptop"
+- BAD: "Writing Object" -> BETTER: "Ballpoint Pen"
+- BAD: "Footwear" -> BETTER: "Sneaker"
+- BAD: "Bag" -> BETTER: "Backpack"
+
+Valid Categories:
+'Electronics', 'Furniture', 'Stationery', 'Clothing', 'Kitchen', 'Household', 'Tool', 'Vehicle', 'Building', 'Outdoor', 'Sports', 'Eyewear', 'Toy', 'Other'
+
+Return a JSON array of non-living physical objects.
 Each item in the returned array MUST strictly follow this JSON schema:
 [
   {
-    "id": "gemini_obj_1",
-    "displayName": "Concise specific name (MAX 3-5 WORDS). Examples: 'The Moon', 'Phone Charger & Adapter', 'Clothing / Patterned Fabric', 'Domestic Cat', 'Horse (Equine Mammal)'.",
-    "subCategory": "Descriptive category (e.g. 'Celestial Astronomical Body', 'Power Supply & Charging Cable', 'Textile & Apparel Material', 'Feline Domestic Animal', 'Equidae Mammalian Animal')",
-    "category": "One of: 'Human', 'Animal', 'Vehicle', 'Electronics', 'Eyewear', 'Food', 'Clothing', 'Plant', 'Tool', 'Outdoor', 'Furniture', 'Sports', 'Medical', 'Toy', 'Other'",
+    "id": "non_living_1",
+    "displayName": "Specific Object Name (e.g., 'Laptop', 'Mobile Phone', 'Office Chair', 'Water Bottle', 'Ballpoint Pen', 'Headphones', 'Backpack', 'Desk')",
+    "subCategory": "Subcategory description",
+    "category": "One of: 'Electronics', 'Furniture', 'Stationery', 'Clothing', 'Kitchen', 'Household', 'Tool', 'Vehicle', 'Building', 'Outdoor', 'Sports', 'Eyewear', 'Toy', 'Other'",
     "score": 0.98,
     "bbox": [x, y, width, height],
     "knowledge": {
-      "scientificOrTechName": "Full scientific name, astronomical designation, or tech classification",
-      "primaryUses": "Detailed primary purpose, ecological role, or functionality",
-      "specifications": ["specification 1", "specification 2", "specification 3"],
-      "keyFeatures": ["key feature 1", "key feature 2", "key feature 3"],
-      "humanDetails": "Context or behavioral traits",
-      "safetyAndLegalStatus": "Safety standards, regulatory status, or legal protection",
-      "funFact": "Fascinating historical, biological, astronomical, or technological trivia fact"
+      "scientificOrTechName": "Tech classification or material composition",
+      "primaryUses": "Primary functional usage",
+      "specifications": ["spec 1", "spec 2"],
+      "keyFeatures": ["feature 1", "feature 2"],
+      "humanDetails": "Physical characteristics",
+      "safetyAndLegalStatus": "Safety and manufacturing standards",
+      "funFact": "Historical or design trivia fact"
     }
   }
 ]
@@ -93,32 +107,6 @@ Respond ONLY with raw JSON array.
       ],
       config: {
         responseMimeType: "application/json",
-        responseSchema: {
-          type: "ARRAY",
-          items: {
-            type: "OBJECT",
-            properties: {
-              id: { type: "STRING" },
-              displayName: { type: "STRING" },
-              subCategory: { type: "STRING" },
-              category: { type: "STRING" },
-              score: { type: "NUMBER" },
-              bbox: { type: "ARRAY", items: { type: "NUMBER" } },
-              knowledge: {
-                type: "OBJECT",
-                properties: {
-                  scientificOrTechName: { type: "STRING" },
-                  primaryUses: { type: "STRING" },
-                  specifications: { type: "ARRAY", items: { type: "STRING" } },
-                  keyFeatures: { type: "ARRAY", items: { type: "STRING" } },
-                  humanDetails: { type: "STRING" },
-                  safetyAndLegalStatus: { type: "STRING" },
-                  funFact: { type: "STRING" }
-                }
-              }
-            }
-          }
-        }
       }
     });
 
@@ -131,46 +119,42 @@ Respond ONLY with raw JSON array.
       console.error("Failed to parse Gemini response as JSON", responseText);
     }
 
-    if (!response.text && response.candidates?.[0]?.finishReason) {
-      console.error('Gemini Blocked:', response.candidates[0].finishReason);
-    }
-
     if (!Array.isArray(aiEnhancements) || aiEnhancements.length === 0) {
-      return NextResponse.json({ enhancedObjects: fallbackObjects });
+      return NextResponse.json({ enhancedObjects: assignInstanceNumbers(fallbackObjects) });
     }
 
-    // Merge Gemini enhancements with existing TFJS objects or construct final objects
-    const baseList: DetectedObject[] = tfjsObjects || [];
     const mergedResults: DetectedObject[] = [];
 
-    // Process Gemini predictions
     for (const enhancement of aiEnhancements) {
-      const existingMatch = baseList.find((b) => b.id === enhancement.id);
+      const displayName = enhancement.displayName || 'Physical Object';
+      const category = (enhancement.category as ObjectCategory) || 'Other';
 
-      const category = enhancement.category || (existingMatch ? existingMatch.category : 'Other');
-      const displayName = enhancement.displayName || (existingMatch ? existingMatch.displayName : 'Object');
+      // STRICT LIVING THING FILTER STAGE
+      if (isLivingThing(displayName, category)) {
+        continue;
+      }
 
-      // Fallback knowledge lookup if gemini knowledge fields are incomplete
       const localKnowledge = getKnowledgeForObject(
-        enhancement.displayName || (existingMatch ? existingMatch.class : 'object'),
+        displayName.toLowerCase(),
         displayName,
         category
       );
 
       const mergedObj: DetectedObject = {
-        id: enhancement.id || existingMatch?.id || `gemini_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`,
-        class: existingMatch?.class || enhancement.displayName?.toLowerCase() || 'object',
-        displayName: enhancement.displayName || existingMatch?.displayName || 'Object',
-        subCategory: enhancement.subCategory || existingMatch?.subCategory,
+        id: enhancement.id || `gemini_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`,
+        class: displayName.toLowerCase(),
+        displayName: displayName,
+        subCategory: enhancement.subCategory || 'Physical Equipment',
         category: category,
-        score: enhancement.score || existingMatch?.score || 0.95,
+        score: enhancement.score || 0.96,
         bbox: enhancement.bbox && Array.isArray(enhancement.bbox) && enhancement.bbox.length === 4
           ? enhancement.bbox
-          : (existingMatch ? existingMatch.bbox : [50, 50, 200, 200]),
-        colorHex: existingMatch?.colorHex || '#00f3ff',
-        colorName: existingMatch?.colorName || 'Neon Cyan',
-        estimatedSize: existingMatch?.estimatedSize || 'Medium',
-        locationQuadrant: existingMatch?.locationQuadrant || 'Center',
+          : [50, 50, 200, 200],
+        hierarchy: buildObjectHierarchy(category, enhancement.subCategory, displayName),
+        colorHex: '#00f3ff',
+        colorName: 'Neon Cyan',
+        estimatedSize: 'Medium',
+        locationQuadrant: 'Center',
         knowledge: {
           scientificOrTechName: enhancement.knowledge?.scientificOrTechName || localKnowledge.scientificOrTechName,
           primaryUses: enhancement.knowledge?.primaryUses || localKnowledge.primaryUses,
@@ -185,16 +169,12 @@ Respond ONLY with raw JSON array.
       mergedResults.push(mergedObj);
     }
 
-    // Retain any TFJS object that wasn't touched
-    for (const baseObj of baseList) {
-      if (!mergedResults.some((m) => m.id === baseObj.id)) {
-        mergedResults.push(baseObj);
-      }
-    }
+    // Assign instance numbers (e.g. Chair #1, Chair #2, Bottle #1, Bottle #2)
+    const finalObjects = assignInstanceNumbers(mergedResults.length > 0 ? mergedResults : fallbackObjects);
 
-    return NextResponse.json({ enhancedObjects: mergedResults });
+    return NextResponse.json({ enhancedObjects: finalObjects });
   } catch (error: any) {
     console.error('Error calling Gemini Vision API:', error?.message, error);
-    return NextResponse.json({ enhancedObjects: fallbackObjects });
+    return NextResponse.json({ enhancedObjects: assignInstanceNumbers(fallbackObjects) });
   }
 }

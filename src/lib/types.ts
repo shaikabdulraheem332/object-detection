@@ -1,22 +1,25 @@
 export type ObjectCategory =
-  | 'Human'
-  | 'Animal'
-  | 'Vehicle'
-  | 'Furniture'
   | 'Electronics'
-  | 'Food'
+  | 'Furniture'
+  | 'Stationery'
   | 'Clothing'
-  | 'Plant'
+  | 'Kitchen'
+  | 'Household'
   | 'Tool'
+  | 'Vehicle'
+  | 'Building'
   | 'Outdoor'
   | 'Sports'
   | 'Eyewear'
-  | 'Landmark'
-  | 'Building'
-  | 'Weapon'
-  | 'Medical'
   | 'Toy'
   | 'Other';
+
+export interface ObjectHierarchy {
+  category: string; // e.g. "Electronics"
+  subcategory: string; // e.g. "Computer"
+  specificType: string; // e.g. "Laptop"
+  exactModel?: string; // e.g. "Apple MacBook Pro"
+}
 
 export interface PersonProfile {
   fullName: string;
@@ -143,7 +146,7 @@ export interface AIKnowledgeExplanation {
   humanDetails?: string;
   safetyAndLegalStatus: string;
   funFact: string;
-  // Extended profiles for specific categories
+  // Extended profiles
   personProfile?: PersonProfile;
   landmarkProfile?: LandmarkProfile;
   vehicleProfile?: VehicleProfile;
@@ -158,12 +161,15 @@ export interface AIKnowledgeExplanation {
 
 export interface DetectedObject {
   id: string;
-  class: string; // Original label from model e.g. "person", "dog", "sunglasses"
-  displayName: string; // Clean capital name e.g. "Sunglasses", "Person", "Smartphone"
-  subCategory?: string; // e.g. "Polarized UV Eyewear", "Eagle", "Touchscreen Device"
+  class: string; // Raw label from model e.g. "chair", "cell phone"
+  displayName: string; // Specific accurate name e.g. "Office Chair", "Mobile Phone", "Water Bottle"
+  subCategory?: string; // Subcategory e.g. "Ergonomic Seating", "Touchscreen Device"
   category: ObjectCategory;
   score: number; // Confidence 0.0 - 1.0 (e.g. 0.98)
   bbox: [number, number, number, number]; // [x, y, width, height]
+  instanceNumber?: number; // e.g. 1 for Chair #1, 2 for Chair #2
+  instanceLabel?: string; // e.g. "Chair #1", "Bottle #2"
+  hierarchy?: ObjectHierarchy; // Taxonomy breakdown
   colorHex?: string;
   colorName?: string;
   estimatedSize?: 'Small' | 'Medium' | 'Large';

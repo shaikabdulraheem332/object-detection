@@ -11,9 +11,10 @@ import {
   RefreshCw,
   VideoOff,
   CheckCircle2,
+  Box,
 } from 'lucide-react';
 import { detectObjectsInElement } from '@/lib/tfjs';
-import { enhancePrediction } from '@/lib/analyzer';
+import { enhancePrediction, assignInstanceNumbers } from '@/lib/analyzer';
 import { analyzeWithGeminiClientSide } from '@/lib/geminiClient';
 import { DetectedObject, DetectionResult, DetectionSettings } from '@/lib/types';
 import { soundManager } from '@/lib/audio';
@@ -84,7 +85,6 @@ export default function CameraDetector({ settings, onSaveToHistory }: CameraDete
   };
 
   const takeSnapshot = async () => {
-    // Shutter flash effect & sound
     setFlashActive(true);
     setTimeout(() => setFlashActive(false), 200);
     if (settings.soundEnabled) soundManager.playShutterSound();
@@ -96,7 +96,6 @@ export default function CameraDetector({ settings, onSaveToHistory }: CameraDete
     const startTime = performance.now();
 
     try {
-      // Create temporary canvas to capture snapshot frame
       const canvas = document.createElement('canvas');
       const width = video?.videoWidth || 640;
       const height = video?.videoHeight || 480;
@@ -108,7 +107,6 @@ export default function CameraDetector({ settings, onSaveToHistory }: CameraDete
         if (video && video.readyState >= 2) {
           ctx.drawImage(video, 0, 0, width, height);
         } else {
-          // Draw simulated test frame if video stream is unavailable
           drawSimulatedCameraFrame(ctx, width, height);
         }
       }
@@ -116,16 +114,15 @@ export default function CameraDetector({ settings, onSaveToHistory }: CameraDete
       const snapshotDataUrl = canvas.toDataURL('image/jpeg');
       setCapturedImage(snapshotDataUrl);
 
-      // Perform AI detection on snapshot
+      // Model detection on snapshot
       const rawPredictions = await detectObjectsInElement(canvas, settings.confidenceThreshold, ctx);
       const duration = Math.round(performance.now() - startTime);
       setInferenceTime(duration);
 
-      let enhanced = rawPredictions.map((pred, idx) =>
-        enhancePrediction(pred, idx, ctx, width, height)
-      );
+      let enhanced: DetectedObject[] = rawPredictions
+        .map((pred, idx) => enhancePrediction(pred, idx, ctx, width, height))
+        .filter((item): item is DetectedObject => item !== null);
 
-      // Fetch deep knowledge from Gemini API backend or client side AI
       try {
         const res = await fetch('/api/analyze', {
           method: 'POST',
@@ -164,13 +161,14 @@ export default function CameraDetector({ settings, onSaveToHistory }: CameraDete
         }
       }
 
-      setDetectedObjects(enhanced);
+      // Filter living items & assign multi-object instance numbers (#1, #2...)
+      const finalObjects = assignInstanceNumbers(enhanced);
+      setDetectedObjects(finalObjects);
 
-      // Render overlay on displayed snapshot canvas
       if (canvasRef.current) {
         canvasRef.current.width = width;
         canvasRef.current.height = height;
-        drawBoundingBoxes(canvasRef.current, enhanced, hoveredObjId);
+        drawBoundingBoxes(canvasRef.current, finalObjects, hoveredObjId);
       }
 
       const resultItem: DetectionResult = {
@@ -178,9 +176,9 @@ export default function CameraDetector({ settings, onSaveToHistory }: CameraDete
         timestamp: Date.now(),
         sourceType: 'camera',
         thumbnailUrl: snapshotDataUrl,
-        objects: enhanced,
+        objects: finalObjects,
         inferenceTimeMs: duration,
-        totalObjectsCount: enhanced.length,
+        totalObjectsCount: finalObjects.length,
       };
 
       onSaveToHistory(resultItem);
@@ -195,7 +193,6 @@ export default function CameraDetector({ settings, onSaveToHistory }: CameraDete
     ctx.fillStyle = '#0b0f19';
     ctx.fillRect(0, 0, w, h);
 
-    // Draw simulated room shape
     ctx.strokeStyle = '#00f3ff44';
     ctx.lineWidth = 2;
     ctx.strokeRect(50, 50, w - 100, h - 100);
@@ -231,11 +228,12 @@ export default function CameraDetector({ settings, onSaveToHistory }: CameraDete
       ctx.roundRect(x, y, w, h, 6);
       ctx.stroke();
 
-      // Label Header
-      const labelText = `${obj.subCategory || obj.displayName} ${Math.round(obj.score * 100)}%`;
+      const labelText = `${obj.instanceLabel || obj.displayName} — ${Math.round(obj.score * 100)}%`;
       ctx.font = 'bold 12px system-ui';
       ctx.fillStyle = 'rgba(5, 7, 15, 0.9)';
-      ctx.fillRect(x, Math.max(0, y - 24), ctx.measureText(labelText).width + 16, 22);
+      const textWidth = ctx.measureText(labelText).width;
+      ctx.fillRect(x, Math.max(0, y - 24), textWidth + 16, 22);
+
       ctx.fillStyle = strokeColor;
       ctx.fillText(labelText, x + 8, Math.max(14, y - 8));
     });
@@ -259,129 +257,82 @@ export default function CameraDetector({ settings, onSaveToHistory }: CameraDete
           <div>
             <h2 className="text-xl font-bold text-white">Camera AI Scanner</h2>
             <p className="text-xs text-gray-400">
-              Snap high-res photo frames using your phone camera or desktop webcam.
+              Detects non-living physical items while ignoring people, animals, and plants.
             </p>
           </div>
         </div>
 
-        {/* Controls */}
+        {/* Action Controls */}
         <div className="flex items-center gap-2">
           {isCameraActive && (
             <button
               onClick={switchCamera}
-              className="flex items-center gap-2 px-3.5 py-2 rounded-xl glass-panel-interactive text-xs text-gray-300 hover:text-neon-cyan"
+              className="flex items-center gap-2 px-4 py-2 rounded-xl glass-panel-interactive text-xs font-semibold text-gray-200"
             >
-              <RotateCcw className="w-4 h-4" />
-              <span className="hidden sm:inline">Flip Camera</span>
+              <RotateCcw className="w-4 h-4 text-neon-cyan" />
+              <span>FLIP CAMERA</span>
             </button>
           )}
 
-          {!isCameraActive ? (
-            <button
-              onClick={startCamera}
-              className="flex items-center gap-2 px-4 py-2 rounded-xl bg-neon-cyan text-cyber-950 font-bold text-xs shadow-neon-cyan"
-            >
-              <Camera className="w-4 h-4" />
-              <span>Start Camera</span>
-            </button>
-          ) : (
-            <button
-              onClick={stopCamera}
-              className="flex items-center gap-2 px-4 py-2 rounded-xl glass-panel text-laser-pink text-xs font-semibold border border-laser-pink/40 hover:bg-laser-pink/10"
-            >
-              <VideoOff className="w-4 h-4" />
-              <span>Stop Camera</span>
-            </button>
-          )}
-        </div>
-      </div>
-
-      {cameraError && (
-        <div className="flex items-center gap-2 p-4 rounded-2xl bg-neon-amber/10 border border-neon-amber/40 text-neon-amber text-xs">
-          <AlertTriangle className="w-4 h-4 shrink-0" />
-          <span>{cameraError}</span>
-        </div>
-      )}
-
-      {/* Main Camera Viewfinder Stage */}
-      <div className="relative glass-panel rounded-3xl overflow-hidden border border-white/10 bg-cyber-950 flex items-center justify-center min-h-[350px]">
-        {/* White Shutter Flash overlay */}
-        {flashActive && (
-          <div className="absolute inset-0 bg-white z-30 transition-opacity duration-200" />
-        )}
-
-        {/* Live Video Stream Viewfinder */}
-        {!capturedImage && (
-          <div className="relative w-full flex items-center justify-center p-2 sm:p-4">
-            <video
-              ref={videoRef}
-              playsInline
-              muted
-              className="w-full max-h-[550px] object-cover rounded-2xl"
-            />
-            {/* Viewfinder Reticle Grid */}
-            <div className="absolute inset-8 sm:inset-16 border border-neon-cyan/20 rounded-3xl pointer-events-none flex flex-col justify-between p-4">
-              <div className="flex justify-between">
-                <span className="w-4 h-4 border-t-2 border-l-2 border-neon-cyan" />
-                <span className="w-4 h-4 border-t-2 border-r-2 border-neon-cyan" />
-              </div>
-              <div className="flex justify-between">
-                <span className="w-4 h-4 border-b-2 border-l-2 border-neon-cyan" />
-                <span className="w-4 h-4 border-b-2 border-r-2 border-neon-cyan" />
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* Captured Snapshot Display with Canvas overlay */}
-        {capturedImage && (
-          <div className="relative inline-block max-w-full p-2 sm:p-4">
-            <img
-              src={capturedImage}
-              alt="Snapshot"
-              className="max-h-[550px] w-auto rounded-2xl block mx-auto object-contain"
-            />
-            <canvas
-              ref={canvasRef}
-              className="absolute inset-0 w-full h-full pointer-events-none rounded-2xl"
-            />
-          </div>
-        )}
-      </div>
-
-      {/* Shutter Capture Button */}
-      <div className="flex justify-center items-center gap-4">
-        {!capturedImage ? (
           <button
             onClick={takeSnapshot}
             disabled={isProcessing}
-            className="group relative flex items-center justify-center w-16 h-16 sm:w-20 sm:h-20 rounded-full bg-gradient-to-tr from-neon-cyan to-neon-purple p-1 shadow-neon-cyan hover:scale-105 active:scale-95 transition-all"
+            className="flex items-center gap-2 px-6 py-3 rounded-2xl bg-gradient-to-r from-neon-cyan to-blue-600 text-cyber-950 font-bold text-xs shadow-neon-cyan hover:scale-105 active:scale-95 transition-all disabled:opacity-50"
           >
-            <div className="w-full h-full rounded-full bg-cyber-950 border-2 border-white/40 flex items-center justify-center group-hover:bg-neon-cyan/20 transition-colors">
-              <Aperture className="w-8 h-8 text-neon-cyan group-hover:rotate-45 transition-transform" />
-            </div>
+            <Aperture className="w-5 h-5 animate-spin-slow" />
+            <span>{isProcessing ? 'SCANNING OBJECTS...' : 'CAPTURE SNAPSHOT'}</span>
           </button>
-        ) : (
-          <button
-            onClick={() => {
-              setCapturedImage(null);
-              setDetectedObjects([]);
-            }}
-            className="flex items-center gap-2 px-6 py-3 rounded-2xl bg-gradient-to-r from-neon-cyan to-neon-purple text-cyber-950 font-bold text-xs shadow-neon-cyan hover:scale-105 transition-transform"
-          >
-            <Camera className="w-4 h-4" />
-            <span>TAKE ANOTHER PHOTO</span>
-          </button>
+        </div>
+      </div>
+
+      {/* Camera Viewport / Canvas overlay */}
+      <div className="relative glass-panel p-3 rounded-3xl border border-white/10 overflow-hidden flex items-center justify-center min-h-[350px] sm:min-h-[480px]">
+        {/* Flash animation */}
+        {flashActive && <div className="absolute inset-0 bg-white z-40 animate-out fade-out duration-200" />}
+
+        {/* Live Video Element */}
+        <video
+          ref={videoRef}
+          playsInline
+          muted
+          className={`w-full h-auto max-h-[600px] object-cover rounded-2xl ${
+            capturedImage ? 'hidden' : 'block'
+          }`}
+        />
+
+        {/* Captured Snapshot Display */}
+        {capturedImage && (
+          <img
+            src={capturedImage}
+            alt="Camera Snapshot"
+            className="w-full h-auto max-h-[600px] object-cover rounded-2xl"
+          />
+        )}
+
+        {/* Bounding box Canvas */}
+        <canvas
+          ref={canvasRef}
+          className="absolute inset-0 w-full h-full pointer-events-none rounded-2xl"
+        />
+
+        {/* Processing Spinner */}
+        {isProcessing && (
+          <div className="absolute inset-0 bg-cyber-950/80 backdrop-blur-sm flex flex-col items-center justify-center space-y-3 rounded-2xl z-30">
+            <RefreshCw className="w-8 h-8 text-neon-cyan animate-spin" />
+            <span className="text-xs font-mono text-neon-cyan tracking-wider">
+              IDENTIFYING NON-LIVING OBJECTS...
+            </span>
+          </div>
         )}
       </div>
 
-      {/* Results Breakdown Grid */}
-      {capturedImage && (
+      {/* Results grid panel */}
+      {capturedImage && !isProcessing && (
         <DetectionCardGrid
           objects={detectedObjects}
           inferenceTimeMs={inferenceTime}
-          hoveredObjId={hoveredObjId}
           onHoverObject={setHoveredObjId}
+          hoveredObjId={hoveredObjId}
         />
       )}
     </div>

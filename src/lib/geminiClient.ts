@@ -1,6 +1,7 @@
 import { GoogleGenAI } from '@google/genai';
-import { DetectedObject } from './types';
+import { DetectedObject, ObjectCategory } from './types';
 import { getKnowledgeForObject } from './knowledgeEngine';
+import { buildObjectHierarchy, isLivingThing, assignInstanceNumbers } from './analyzer';
 
 export async function analyzeWithGeminiClientSide(
   imageBase64: string,
@@ -33,32 +34,51 @@ export async function analyzeWithGeminiClientSide(
     }
 
     const prompt = `
-You are an advanced AI vision system. Analyze this image carefully:
+You are an AI vision system specialized ONLY in NON-LIVING PHYSICAL OBJECT DETECTION.
 
-1. Identify all animals, insects, people, astronomical objects, electronics, chargers, clothes, and items in the image.
-   - ANIMALS: African Lion (Panthera leo), Bengal Tiger, Bear, Domestic Cat, Dog, Horse (living equine animal), Ants (Formicidae insect colony), Rat, Rodent, Birds, Peacocks, Wildlife.
-     IMPORTANT: If a living African Lion is in the image, identify it as "African Lion (Panthera leo)" under Category "Animal"!
-     If ants or insects are present, identify them as "Ants (Formicidae Colony)" under Category "Animal"!
-   - ASTRONOMY: The Moon (Earth's Natural Satellite), Sun, Stars, Sky.
-   - ELECTRONICS & CHARGERS: Phone Charger & Power Adapter, USB Cable, Headphones, Laptop, Mouse.
-   - CLOTHING & FABRICS: Clothing / Patterned Fabric, Garments, Bedsheets.
+VERY IMPORTANT STRICT RULE:
+You MUST COMPLETELY IGNORE all living things in the image!
+NEVER DETECT OR RETURN:
+- Humans, babies, children, adults, people, faces
+- Animals, dogs, cats, horses, birds, wildlife
+- Insects, ants, bees, spiders, beetles
+- Fish, reptiles, snakes, turtles, amphibians
+- Plants, trees, flowers, grass, leaves, shrubs, flora
+- Biological food items (fruits, vegetables, meat, sandwiches, pizza)
 
-Return a JSON array strictly following this schema:
+FOCUS ONLY ON NON-LIVING PHYSICAL OBJECTS.
+Detect EVERY visible non-living physical object individually! (If there are 15 non-living objects like laptops, phones, chairs, desks, pens, bottles, books, headphones, backpacks, lamps, attempt to detect ALL of them individually).
+
+ACCURATE SPECIFIC OBJECT NAMING RULES:
+Use specific accurate names instead of generic names!
+- Use "Mobile Phone" or "Smartphone" instead of "Electronic Device"
+- Use "Office Chair" or "Chair" instead of "Furniture"
+- Use "Water Bottle" instead of "Container"
+- Use "Laptop" instead of "Computer"
+- Use "Ballpoint Pen" instead of "Writing Object"
+- Use "Sneaker" instead of "Footwear"
+- Use "Backpack" instead of "Bag"
+- Use "Desktop Monitor", "Keyboard", "Mouse", "Headphones", "Table Lamp", "Notebook"
+
+Category must be one of:
+'Electronics', 'Furniture', 'Stationery', 'Clothing', 'Kitchen', 'Household', 'Tool', 'Vehicle', 'Building', 'Outdoor', 'Sports', 'Eyewear', 'Toy', 'Other'
+
+Return a JSON array following this schema:
 [
   {
-    "id": "gemini_client_1",
-    "displayName": "African Lion (Panthera leo)",
-    "subCategory": "Apex Feline Predator",
-    "category": "Animal",
+    "id": "non_living_1",
+    "displayName": "Laptop",
+    "subCategory": "Portable Computer Workstation",
+    "category": "Electronics",
     "score": 0.98,
     "bbox": [x, y, width, height],
     "knowledge": {
-      "scientificOrTechName": "Panthera leo — African Lion",
-      "primaryUses": "Apex carnivore predator, keystone species in savannah ecosystems.",
-      "specifications": ["Species: Panthera leo", "Bite force: 650 PSI", "Roar: heard 8km away"],
-      "keyFeatures": ["Social cat living in prides", "Male lion mane protects neck"],
-      "safetyAndLegalStatus": "IUCN Status: Vulnerable.",
-      "funFact": "A lion's roar can be heard from 5 miles away!"
+      "scientificOrTechName": "Portable Computer System",
+      "primaryUses": "Computing, software development, data processing.",
+      "specifications": ["Aluminum chassis", "High resolution display"],
+      "keyFeatures": ["Integrated keyboard", "Trackpad"],
+      "safetyAndLegalStatus": "Standard consumer electronics safety compliance.",
+      "funFact": "The first portable computer was the Osborne 1, released in 1981."
     }
   }
 ]
@@ -91,23 +111,30 @@ Respond ONLY with raw JSON array.
 
     const mergedResults: DetectedObject[] = [];
     for (const enhancement of aiEnhancements) {
-      const category = enhancement.category || 'Animal';
-      const displayName = enhancement.displayName || 'Object';
+      const displayName = enhancement.displayName || 'Physical Object';
+      const category = (enhancement.category as ObjectCategory) || 'Electronics';
+
+      // Enforce living exclusion filter
+      if (isLivingThing(displayName, category)) {
+        continue;
+      }
+
       const localKnowledge = getKnowledgeForObject(displayName.toLowerCase(), displayName, category);
 
       mergedResults.push({
         id: enhancement.id || `client_gemini_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`,
         class: displayName.toLowerCase(),
         displayName,
-        subCategory: enhancement.subCategory || 'Wildlife Species',
+        subCategory: enhancement.subCategory || 'Physical Equipment',
         category,
-        score: enhancement.score || 0.98,
+        score: enhancement.score || 0.96,
         bbox: enhancement.bbox && Array.isArray(enhancement.bbox) && enhancement.bbox.length === 4
           ? enhancement.bbox
-          : [50, 50, 400, 300],
+          : [50, 50, 200, 200],
+        hierarchy: buildObjectHierarchy(category, enhancement.subCategory, displayName),
         colorHex: '#00f3ff',
         colorName: 'Neon Cyan',
-        estimatedSize: 'Large',
+        estimatedSize: 'Medium',
         locationQuadrant: 'Center',
         knowledge: {
           scientificOrTechName: enhancement.knowledge?.scientificOrTechName || localKnowledge.scientificOrTechName,
@@ -121,7 +148,8 @@ Respond ONLY with raw JSON array.
       });
     }
 
-    return mergedResults;
+    // Filter living things & assign instance numbers (#1, #2...)
+    return assignInstanceNumbers(mergedResults);
   } catch (err) {
     console.warn("Client side Gemini AI call failed:", err);
     return null;
