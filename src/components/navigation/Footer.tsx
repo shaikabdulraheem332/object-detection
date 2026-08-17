@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import { Box, Zap, Shield, Heart } from 'lucide-react';
+import { Eye, Zap, Shield, Heart } from 'lucide-react';
 
 export default function Footer() {
   return (
@@ -10,25 +10,25 @@ export default function Footer() {
         {/* Brand info */}
         <div className="flex items-center gap-3">
           <div className="w-8 h-8 rounded-lg bg-neon-cyan/20 border border-neon-cyan/50 flex items-center justify-center text-neon-cyan">
-            <Box className="w-4 h-4" />
+            <Eye className="w-4 h-4" />
           </div>
           <div>
-            <span className="text-sm font-bold text-white font-sans tracking-wide">NON-LIVING OBJECT DETECTION AI</span>
-            <p className="text-[10px] text-gray-500">Dedicated Non-Living Physical Object Detection System</p>
+            <span className="text-sm font-bold text-white font-sans tracking-wide">AI VISION 3D</span>
+            <p className="text-[10px] text-gray-500">Real-Time Object Detection Platform</p>
           </div>
         </div>
 
         {/* Engine Status */}
         <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-cyber-900 border border-neon-cyan/30 text-neon-cyan text-[11px]">
           <span className="w-2 h-2 rounded-full bg-neon-cyan animate-ping" />
-          <span>STRICT LIVING FILTER: ACTIVE</span>
+          <span>TFJS WEBGL ENGINE: ONLINE (60 FPS)</span>
         </div>
 
         {/* Copyright */}
         <div className="flex items-center gap-1 text-[11px]">
           <span>Crafted with</span>
           <Heart className="w-3 h-3 text-laser-pink fill-laser-pink" />
-          <span>for High-Accuracy Object Identification</span>
+          <span>for Next.js & TensorFlow.js</span>
         </div>
       </div>
     </footer>

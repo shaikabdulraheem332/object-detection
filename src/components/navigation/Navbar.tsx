@@ -14,7 +14,6 @@ import {
   Volume2,
   VolumeX,
   Zap,
-  Box,
 } from 'lucide-react';
 import { soundManager } from '@/lib/audio';
 
@@ -69,12 +68,12 @@ export default function Navbar({
             className="flex items-center gap-3 cursor-pointer group select-none"
           >
             <div className="relative flex items-center justify-center w-10 h-10 rounded-xl bg-gradient-to-br from-neon-cyan/20 to-neon-purple/30 border border-neon-cyan/50 shadow-neon-cyan group-hover:scale-105 transition-transform duration-300">
-              <Box className="w-5 h-5 text-neon-cyan group-hover:rotate-12 transition-transform duration-300" />
+              <Eye className="w-5 h-5 text-neon-cyan group-hover:rotate-12 transition-transform duration-300" />
               <div className="absolute inset-0 rounded-xl bg-neon-cyan/10 animate-ping opacity-20" />
             </div>
             <div className="flex flex-col">
               <span className="text-lg sm:text-xl font-extrabold tracking-wider bg-clip-text text-transparent bg-gradient-to-r from-neon-cyan via-white to-neon-purple font-sans">
-                NON-LIVING AI
+                AI VISION
               </span>
               <span className="text-[10px] tracking-widest text-cyan-400/80 font-mono -mt-1 flex items-center gap-1">
                 <Zap className="w-2.5 h-2.5 text-neon-cyan" /> OBJECT DETECTION SYSTEM

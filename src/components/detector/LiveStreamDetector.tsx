@@ -258,13 +258,13 @@ export default function LiveStreamDetector({ settings, onSaveToHistory }: LiveSt
           </div>
           <div>
             <div className="flex items-center gap-2">
-              <h2 className="text-xl font-bold text-white">Live Stream Non-Living AI</h2>
+              <h2 className="text-xl font-bold text-white">Live Stream AI Scanner</h2>
               <span className="text-[10px] font-mono text-neon-cyan bg-neon-cyan/10 px-2 py-0.5 rounded border border-neon-cyan/30">
                 {fps} FPS
               </span>
             </div>
             <p className="text-xs text-gray-400">
-              Continuous real-time stream scanning for non-living physical objects.
+              Continuous real-time stream scanning for physical objects.
             </p>
           </div>
         </div>
@@ -319,12 +319,14 @@ export default function LiveStreamDetector({ settings, onSaveToHistory }: LiveSt
         />
       </div>
 
-      {/* Results grid panel */}
-      <DetectionCardGrid
-        objects={detectedObjects}
-        onHoverObject={setHoveredObjId}
-        hoveredObjId={hoveredObjId}
-      />
+      {/* Results grid panel - Only rendered when objects are detected */}
+      {detectedObjects.length > 0 && (
+        <DetectionCardGrid
+          objects={detectedObjects}
+          onHoverObject={setHoveredObjId}
+          hoveredObjId={hoveredObjId}
+        />
+      )}
     </div>
   );
 }

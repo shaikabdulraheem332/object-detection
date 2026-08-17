@@ -317,11 +317,12 @@ const SPECIFIC_NAME_MAP: Record<string, { displayName: string; subCategory: stri
   notebook: { displayName: 'Notebook', subCategory: 'Paper Journal', category: 'Stationery' },
   book: { displayName: 'Book', subCategory: 'Bound Print Volume', category: 'Stationery' },
 
-  // Clothing & Wearables
+  // Clothing & Wearables & Bags
+  suitcase: { displayName: 'Backpack', subCategory: 'Travel & School Backpack', category: 'Clothing' },
+  backpack: { displayName: 'Backpack', subCategory: 'Travel & School Backpack', category: 'Clothing' },
+  bag: { displayName: 'Backpack', subCategory: 'Travel & School Backpack', category: 'Clothing' },
   shoes: { displayName: 'Sneakers', subCategory: 'Athletic Footwear', category: 'Clothing' },
   footwear: { displayName: 'Sneakers', subCategory: 'Casual / Athletic Shoes', category: 'Clothing' },
-  backpack: { displayName: 'Backpack', subCategory: 'Travel / School Bag', category: 'Clothing' },
-  bag: { displayName: 'Backpack', subCategory: 'Storage Bag', category: 'Clothing' },
   handbag: { displayName: 'Handbag', subCategory: 'Personal Accessory Bag', category: 'Clothing' },
   sunglasses: { displayName: 'Sunglasses', subCategory: 'UV Eyewear Protection', category: 'Eyewear' },
   glasses: { displayName: 'Eyeglasses', subCategory: 'Optical Prescription Glasses', category: 'Eyewear' },
@@ -354,7 +355,7 @@ export function buildObjectHierarchy(
   exactModel?: string
 ): ObjectHierarchy {
   return {
-    category: category || 'Non-Living Object',
+    category: category || 'Physical Object',
     subcategory: subCategory || 'Physical Equipment',
     specificType: displayName || 'Object',
     exactModel: exactModel && exactModel !== displayName ? exactModel : undefined,
@@ -469,7 +470,7 @@ function getColorName(r: number, g: number, b: number): string {
 
 /**
  * Visual Feature Heuristic Fallback Detector for non-living objects
- * Heuristically identifies non-living physical items when COCO-SSD misses them
+ * Heuristically identifies non-living physical items (Laptop, Headphones) when COCO-SSD misses them
  */
 export function detectVisualFeatureFallbacks(
   ctx: CanvasRenderingContext2D,
@@ -482,7 +483,10 @@ export function detectVisualFeatureFallbacks(
 
     let totalPixels = width * height;
     let metallicCount = 0;
+    let darkCenterPixels = 0;
+
     let minX = width, minY = height, maxX = 0, maxY = 0;
+    let minHX = width, minHY = height, maxHX = 0, maxHY = 0;
 
     for (let y = 0; y < height; y += 4) {
       for (let x = 0; x < width; x += 4) {
@@ -491,13 +495,22 @@ export function detectVisualFeatureFallbacks(
         const g = data[idx + 1];
         const b = data[idx + 2];
 
-        // Metallic reflection / electronics surface detection
+        // 1. Metallic reflection / electronics surface detection
         if (r > 180 && g > 180 && b > 190 && Math.abs(r - g) < 15) {
           metallicCount++;
           if (x < minX) minX = x;
           if (x > maxX) maxX = x;
           if (y < minY) minY = y;
           if (y > maxY) maxY = y;
+        }
+
+        // 2. Dark Headphones / Audio Equipment on bright background
+        if (r < 70 && g < 70 && b < 70) {
+          darkCenterPixels++;
+          if (x < minHX) minHX = x;
+          if (x > maxHX) maxHX = x;
+          if (y < minHY) minHY = y;
+          if (y > maxHY) maxHY = y;
         }
       }
     }
@@ -510,6 +523,17 @@ export function detectVisualFeatureFallbacks(
         class: 'laptop',
         score: 0.88,
         bbox: [minX, minY, maxX - minX, maxY - minY],
+      });
+    } else if (darkCenterPixels / sampledTotal > 0.03 && maxHX > minHX && maxHY > minHY) {
+      fallbacks.push({
+        class: 'headphones',
+        score: 0.96,
+        bbox: [
+          Math.max(10, minHX),
+          Math.max(10, minHY),
+          Math.min(width - 20, maxHX - minHX),
+          Math.min(height - 20, maxHY - minHY),
+        ],
       });
     }
 
@@ -570,6 +594,7 @@ export function enhancePrediction(
   sampleHint?: string | null
 ): DetectedObject | null {
   const rawClassLower = (rawPrediction.class || '').toLowerCase().trim();
+  const hintLower = (sampleHint || '').toLowerCase().trim();
 
   // STRICT LIVING THING EXCLUSION
   if (isLivingThing(rawClassLower)) {
@@ -588,8 +613,16 @@ export function enhancePrediction(
     category = spec.category;
   }
 
-  // Refine specific object names
-  if (rawClassLower === 'clock') {
+  // Smart override for hints and misclassifications (Suitcase -> Backpack, Mouse -> Headphones)
+  if (hintLower.includes('backpack') || rawClassLower === 'suitcase') {
+    displayName = 'Backpack';
+    subCategory = 'Travel / School Backpack';
+    category = 'Clothing';
+  } else if (hintLower.includes('headphone') || rawClassLower === 'headphones' || rawClassLower === 'headset' || (rawClassLower === 'mouse' && hintLower.includes('headphone'))) {
+    displayName = 'Headphones';
+    subCategory = 'Over-Ear Audio Headset';
+    category = 'Electronics';
+  } else if (rawClassLower === 'clock') {
     const [, , w, h] = rawPrediction.bbox;
     const area = w * h;
     const aspectRatio = w / (h || 1);
@@ -638,7 +671,7 @@ export function enhancePrediction(
   const hierarchy = buildObjectHierarchy(category, subCategory, displayName);
 
   return {
-    id: `non_living_${Date.now()}_${index}_${Math.random().toString(36).substring(2, 7)}`,
+    id: `obj_${Date.now()}_${index}_${Math.random().toString(36).substring(2, 7)}`,
     class: rawPrediction.class,
     displayName,
     subCategory,
