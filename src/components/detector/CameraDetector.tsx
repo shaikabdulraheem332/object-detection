@@ -257,7 +257,7 @@ export default function CameraDetector({ settings, onSaveToHistory }: CameraDete
           <div>
             <h2 className="text-xl font-bold text-white">Camera AI Scanner</h2>
             <p className="text-xs text-gray-400">
-              Detects non-living physical items while ignoring people, animals, and plants.
+              Real-time optical object scanning &amp; spatial analysis via WebGL neural engine.
             </p>
           </div>
         </div>

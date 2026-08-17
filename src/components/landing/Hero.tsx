@@ -35,7 +35,7 @@ export default function Hero({ onSelectTab }: HeroProps) {
           className="inline-flex items-center gap-2 px-4 py-2 rounded-full glass-panel border border-neon-cyan/40 shadow-neon-cyan text-xs font-mono text-neon-cyan"
         >
           <Sparkles className="w-4 h-4 text-neon-cyan animate-pulse" />
-          <span>REAL-TIME AI OBJECT DETECTION ENGINE v5.0</span>
+          <span>REAL-TIME 3D AI OBJECT DETECTION ENGINE v5.0</span>
           <span className="flex h-2 w-2 relative">
             <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-neon-cyan opacity-75" />
             <span className="relative inline-flex rounded-full h-2 w-2 bg-neon-cyan" />
@@ -117,27 +117,27 @@ export default function Hero({ onSelectTab }: HeroProps) {
           transition={{ duration: 0.8, delay: 0.5 }}
           className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4 pt-10 text-left"
         >
-          <div className="glass-panel p-4 rounded-2xl space-y-2 border border-white/10">
+          <div className="glass-panel p-5 rounded-2xl space-y-2 border border-white/10 hover:border-neon-cyan/60 hover:-translate-y-1 hover:shadow-neon-cyan transition-all duration-300">
             <Cpu className="w-6 h-6 text-neon-cyan" />
             <h3 className="text-sm font-bold text-white">Browser Local AI</h3>
             <p className="text-xs text-gray-400">100% Client-side TFJS inference for instant zero-latency detection.</p>
           </div>
 
-          <div className="glass-panel p-4 rounded-2xl space-y-2 border border-white/10">
+          <div className="glass-panel p-5 rounded-2xl space-y-2 border border-white/10 hover:border-neon-purple/60 hover:-translate-y-1 hover:shadow-neon-purple transition-all duration-300">
             <Target className="w-6 h-6 text-neon-purple" />
             <h3 className="text-sm font-bold text-white">Bounding Box HUD</h3>
             <p className="text-xs text-gray-400">Glowing neon target crosshairs with real-time confidence scores.</p>
           </div>
 
-          <div className="glass-panel p-4 rounded-2xl space-y-2 border border-white/10">
+          <div className="glass-panel p-5 rounded-2xl space-y-2 border border-white/10 hover:border-laser-pink/60 hover:-translate-y-1 hover:shadow-neon-pink transition-all duration-300">
             <Layers className="w-6 h-6 text-laser-pink" />
-            <h3 className="text-sm font-bold text-white">Color & Size Analysis</h3>
-            <p className="text-xs text-gray-400">Extracts ROI dominant colors, quad spatial placement & sizes.</p>
+            <h3 className="text-sm font-bold text-white">Color &amp; Size Analysis</h3>
+            <p className="text-xs text-gray-400">Extracts ROI dominant colors, quad spatial placement &amp; sizes.</p>
           </div>
 
-          <div className="glass-panel p-4 rounded-2xl space-y-2 border border-white/10">
+          <div className="glass-panel p-5 rounded-2xl space-y-2 border border-white/10 hover:border-emerald-400/60 hover:-translate-y-1 hover:shadow-emerald-500/20 transition-all duration-300">
             <ShieldCheck className="w-6 h-6 text-neon-emerald" />
-            <h3 className="text-sm font-bold text-white">Private & Secure</h3>
+            <h3 className="text-sm font-bold text-white">Private &amp; Secure</h3>
             <p className="text-xs text-gray-400">No media uploaded to servers. All image processing stays on device.</p>
           </div>
         </motion.div>

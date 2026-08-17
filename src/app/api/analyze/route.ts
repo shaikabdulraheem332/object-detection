@@ -2,26 +2,21 @@ import { NextResponse } from 'next/server';
 import { GoogleGenAI } from '@google/genai';
 import { DetectedObject, ObjectCategory } from '@/lib/types';
 import { getKnowledgeForObject } from '@/lib/knowledgeEngine';
-import { isLivingThing, assignInstanceNumbers, buildObjectHierarchy } from '@/lib/analyzer';
+import { assignInstanceNumbers, buildObjectHierarchy } from '@/lib/analyzer';
 
 export async function POST(req: Request) {
   let fallbackObjects: DetectedObject[] = [];
   try {
     const { imageBase64, tfjsObjects, customApiKey } = await req.json();
-    
-    // Filter fallback TFJS objects to strictly exclude living things
-    fallbackObjects = (tfjsObjects || []).filter(
-      (obj: DetectedObject) => !isLivingThing(obj.class, obj.category)
-    );
+    fallbackObjects = tfjsObjects || [];
 
     if (!imageBase64) {
       return NextResponse.json({ error: 'Missing imageBase64' }, { status: 400 });
     }
 
-    const apiKey = customApiKey || process.env.GEMINI_API_KEY;
+    const apiKey = customApiKey || process.env.GEMINI_API_KEY || process.env.NEXT_PUBLIC_GEMINI_API_KEY;
 
-    if (!apiKey || apiKey.trim() === '' || apiKey.startsWith('AQ.')) {
-      console.warn("GEMINI_API_KEY is missing or invalid. Returning local non-living detection objects.");
+    if (!apiKey || apiKey.trim() === '') {
       return NextResponse.json({ enhancedObjects: assignInstanceNumbers(fallbackObjects) });
     }
 
@@ -43,37 +38,29 @@ export async function POST(req: Request) {
     }
 
     const prompt = `
-You are the world's leading Non-Living Object Detection AI.
+You are the world's leading AI Object Detection Engine.
 
-STRICT MANDATORY RULE:
-You MUST COMPLETELY IGNORE ALL LIVING THINGS in the image!
-NEVER DETECT OR RETURN:
-- Humans, babies, children, adults, people, faces, bodies
-- Animals, dogs, cats, horses, birds, wildlife, insects, ants, fish, reptiles
-- Plants, trees, flowers, grass, leaves, shrubs, biological vegetation
-- Biological food items (fruits, vegetables, meat, sandwiches, pizza)
-
-FOCUS EXCLUSIVELY ON NON-LIVING PHYSICAL OBJECTS.
-Detect EVERY visible non-living physical object individually! (e.g. laptop, mobile phone, keyboard, mouse, monitor, water bottle, notebook, pen, headphones, backpack, chair, desk, lamp, clock, shoes, jacket).
+TASK:
+Detect EVERY visible physical object in the image individually! (e.g. laptop, mobile phone, keyboard, mouse, monitor, water bottle, notebook, pen, headphones, backpack, chair, desk, lamp, clock, shoes, jacket, vehicles, tools, products, etc.).
 
 CORRECT SPECIFIC OBJECT NAMING:
-Do not use overly generic labels when specific accurate names are visible:
-- BAD: "Electronic Device" -> BETTER: "Mobile Phone" or "Smartphone"
-- BAD: "Furniture" -> BETTER: "Office Chair"
-- BAD: "Container" -> BETTER: "Water Bottle"
-- BAD: "Computer" -> BETTER: "Laptop"
-- BAD: "Writing Object" -> BETTER: "Ballpoint Pen"
-- BAD: "Footwear" -> BETTER: "Sneaker"
-- BAD: "Bag" -> BETTER: "Backpack"
+Use specific accurate names:
+- Use "Mobile Phone" or "Smartphone" instead of "Electronic Device"
+- Use "Office Chair" instead of "Furniture"
+- Use "Water Bottle" instead of "Container"
+- Use "Laptop" instead of "Computer"
+- Use "Ballpoint Pen" instead of "Writing Object"
+- Use "Sneaker" instead of "Footwear"
+- Use "Backpack" instead of "Bag"
 
 Valid Categories:
 'Electronics', 'Furniture', 'Stationery', 'Clothing', 'Kitchen', 'Household', 'Tool', 'Vehicle', 'Building', 'Outdoor', 'Sports', 'Eyewear', 'Toy', 'Other'
 
-Return a JSON array of non-living physical objects.
+Return a JSON array of physical objects.
 Each item in the returned array MUST strictly follow this JSON schema:
 [
   {
-    "id": "non_living_1",
+    "id": "obj_1",
     "displayName": "Specific Object Name (e.g., 'Laptop', 'Mobile Phone', 'Office Chair', 'Water Bottle', 'Ballpoint Pen', 'Headphones', 'Backpack', 'Desk')",
     "subCategory": "Subcategory description",
     "category": "One of: 'Electronics', 'Furniture', 'Stationery', 'Clothing', 'Kitchen', 'Household', 'Tool', 'Vehicle', 'Building', 'Outdoor', 'Sports', 'Eyewear', 'Toy', 'Other'",
@@ -106,75 +93,46 @@ Respond ONLY with raw JSON array.
         }
       ],
       config: {
-        responseMimeType: "application/json",
+        responseMimeType: "application/json"
       }
     });
 
-    const responseText = response.text || "[]";
-    let aiEnhancements: any[] = [];
-    try {
-      const cleanJson = responseText.replace(/```json/g, '').replace(/```/g, '').trim();
-      aiEnhancements = JSON.parse(cleanJson);
-    } catch (e) {
-      console.error("Failed to parse Gemini response as JSON", responseText);
+    const text = response.text || '';
+    const cleanJson = text.replace(/```json/g, '').replace(/```/g, '').trim();
+    const rawArray = JSON.parse(cleanJson);
+
+    if (Array.isArray(rawArray) && rawArray.length > 0) {
+      const parsedObjects: DetectedObject[] = rawArray.map((item: any, idx: number) => {
+        const displayName = item.displayName || 'Physical Object';
+        const category: ObjectCategory = item.category || 'Other';
+        const subCategory = item.subCategory || 'Physical Item';
+
+        const hierarchy = buildObjectHierarchy(category, subCategory, displayName);
+        const defaultKnowledge = getKnowledgeForObject(displayName, displayName, category);
+
+        return {
+          id: item.id || `gemini_obj_${Date.now()}_${idx}`,
+          class: displayName.toLowerCase(),
+          displayName,
+          subCategory,
+          category,
+          score: Math.min(0.99, Math.max(0.7, item.score || 0.95)),
+          bbox: Array.isArray(item.bbox) && item.bbox.length === 4 ? item.bbox : [50, 50, 200, 200],
+          hierarchy,
+          colorHex: '#00f3ff',
+          colorName: 'Cyber Blue',
+          estimatedSize: 'Medium',
+          locationQuadrant: 'Center',
+          knowledge: item.knowledge || defaultKnowledge,
+        };
+      });
+
+      return NextResponse.json({ enhancedObjects: assignInstanceNumbers(parsedObjects) });
     }
 
-    if (!Array.isArray(aiEnhancements) || aiEnhancements.length === 0) {
-      return NextResponse.json({ enhancedObjects: assignInstanceNumbers(fallbackObjects) });
-    }
-
-    const mergedResults: DetectedObject[] = [];
-
-    for (const enhancement of aiEnhancements) {
-      const displayName = enhancement.displayName || 'Physical Object';
-      const category = (enhancement.category as ObjectCategory) || 'Other';
-
-      // STRICT LIVING THING FILTER STAGE
-      if (isLivingThing(displayName, category)) {
-        continue;
-      }
-
-      const localKnowledge = getKnowledgeForObject(
-        displayName.toLowerCase(),
-        displayName,
-        category
-      );
-
-      const mergedObj: DetectedObject = {
-        id: enhancement.id || `gemini_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`,
-        class: displayName.toLowerCase(),
-        displayName: displayName,
-        subCategory: enhancement.subCategory || 'Physical Equipment',
-        category: category,
-        score: enhancement.score || 0.96,
-        bbox: enhancement.bbox && Array.isArray(enhancement.bbox) && enhancement.bbox.length === 4
-          ? enhancement.bbox
-          : [50, 50, 200, 200],
-        hierarchy: buildObjectHierarchy(category, enhancement.subCategory, displayName),
-        colorHex: '#00f3ff',
-        colorName: 'Neon Cyan',
-        estimatedSize: 'Medium',
-        locationQuadrant: 'Center',
-        knowledge: {
-          scientificOrTechName: enhancement.knowledge?.scientificOrTechName || localKnowledge.scientificOrTechName,
-          primaryUses: enhancement.knowledge?.primaryUses || localKnowledge.primaryUses,
-          specifications: enhancement.knowledge?.specifications || localKnowledge.specifications,
-          keyFeatures: enhancement.knowledge?.keyFeatures || localKnowledge.keyFeatures,
-          humanDetails: enhancement.knowledge?.humanDetails || localKnowledge.humanDetails,
-          safetyAndLegalStatus: enhancement.knowledge?.safetyAndLegalStatus || localKnowledge.safetyAndLegalStatus,
-          funFact: enhancement.knowledge?.funFact || localKnowledge.funFact,
-        }
-      };
-
-      mergedResults.push(mergedObj);
-    }
-
-    // Assign instance numbers (e.g. Chair #1, Chair #2, Bottle #1, Bottle #2)
-    const finalObjects = assignInstanceNumbers(mergedResults.length > 0 ? mergedResults : fallbackObjects);
-
-    return NextResponse.json({ enhancedObjects: finalObjects });
-  } catch (error: any) {
-    console.error('Error calling Gemini Vision API:', error?.message, error);
+    return NextResponse.json({ enhancedObjects: assignInstanceNumbers(fallbackObjects) });
+  } catch (err: any) {
+    console.error('API Gemini Error', err);
     return NextResponse.json({ enhancedObjects: assignInstanceNumbers(fallbackObjects) });
   }
 }

@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useRef, useEffect } from 'react';
-import { Video, Upload, RefreshCw, Sparkles } from 'lucide-react';
+import { Video, Upload, RefreshCw, Sparkles, Play, Pause } from 'lucide-react';
 import { detectObjectsInElement } from '@/lib/tfjs';
 import { enhancePrediction, assignInstanceNumbers } from '@/lib/analyzer';
 import { DetectedObject, DetectionResult, DetectionSettings } from '@/lib/types';
@@ -25,9 +25,16 @@ export default function VideoDetector({ settings, onSaveToHistory }: VideoDetect
   const animationFrameRef = useRef<number | null>(null);
   const isDetectingRef = useRef<boolean>(false);
 
+  // Reliable Demo Videos
   const sampleVideos = [
-    { label: 'Vehicles & Street Traffic', url: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4' },
-    { label: 'Technology & Displays', url: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerEscapes.mp4' },
+    {
+      label: 'Vehicles & Street Traffic',
+      url: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4',
+    },
+    {
+      label: 'Technology & Displays',
+      url: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerEscapes.mp4',
+    },
   ];
 
   const handleVideoUpload = (file: File) => {
@@ -35,6 +42,18 @@ export default function VideoDetector({ settings, onSaveToHistory }: VideoDetect
     const url = URL.createObjectURL(file);
     setVideoSrc(url);
     if (settings.soundEnabled) soundManager.playDetectionPing();
+  };
+
+  const handleSelectSampleVideo = (url: string) => {
+    setVideoSrc(url);
+    setDetectedObjects([]);
+    setIsPlaying(true);
+    setTimeout(() => {
+      if (videoRef.current) {
+        videoRef.current.load();
+        videoRef.current.play().catch(() => {});
+      }
+    }, 100);
   };
 
   // Video Frame Loop
@@ -127,10 +146,7 @@ export default function VideoDetector({ settings, onSaveToHistory }: VideoDetect
           <div>
             <h2 className="text-xl font-bold text-white">Video AI Analyzer</h2>
             <p className="text-xs text-gray-400">
-              Upload MP4, WEBM, or MOV videos for continuous frame-by-frame non-living object detection.
-            </p>
-            <p className="text-[10px] text-rose-400 mt-1 font-mono uppercase bg-rose-950/30 inline-block px-2.5 py-0.5 rounded border border-rose-500/30">
-              Strict Living Filter Active: Ignores all people, animals, and vegetation in video frames.
+              Upload MP4, WEBM, or MOV videos for continuous frame-by-frame object detection.
             </p>
           </div>
         </div>
@@ -202,10 +218,10 @@ export default function VideoDetector({ settings, onSaveToHistory }: VideoDetect
               {sampleVideos.map((sample, idx) => (
                 <button
                   key={idx}
-                  onClick={() => setVideoSrc(sample.url)}
-                  className="flex items-center gap-2 px-3 py-2 rounded-xl glass-panel-interactive text-xs text-gray-300 hover:text-laser-pink"
+                  onClick={() => handleSelectSampleVideo(sample.url)}
+                  className="flex items-center gap-2 px-4 py-2.5 rounded-xl glass-panel-interactive text-xs text-gray-200 hover:text-laser-pink hover:border-laser-pink/50 transition-all"
                 >
-                  <Sparkles className="w-3.5 h-3.5 text-laser-pink" />
+                  <Sparkles className="w-4 h-4 text-laser-pink" />
                   <span>{sample.label}</span>
                 </button>
               ))}
@@ -223,6 +239,8 @@ export default function VideoDetector({ settings, onSaveToHistory }: VideoDetect
                 ref={videoRef}
                 src={videoSrc}
                 controls
+                autoPlay
+                playsInline
                 crossOrigin="anonymous"
                 onPlay={() => setIsPlaying(true)}
                 onPause={() => setIsPlaying(false)}
@@ -235,12 +253,14 @@ export default function VideoDetector({ settings, onSaveToHistory }: VideoDetect
             </div>
           </div>
 
-          {/* Results Grid */}
-          <DetectionCardGrid
-            objects={detectedObjects}
-            hoveredObjId={hoveredObjId}
-            onHoverObject={setHoveredObjId}
-          />
+          {/* Results Grid - Only show when objects detected */}
+          {detectedObjects.length > 0 && (
+            <DetectionCardGrid
+              objects={detectedObjects}
+              hoveredObjId={hoveredObjId}
+              onHoverObject={setHoveredObjId}
+            />
+          )}
         </div>
       )}
     </div>

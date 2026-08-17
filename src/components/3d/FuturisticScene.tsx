@@ -25,21 +25,23 @@ export default function FuturisticScene() {
     renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
     container.appendChild(renderer.domElement);
 
-    // Particle Stars System
-    const particleCount = 450;
+    // Particle Stars Constellation System
+    const particleCount = 550;
     const geometry = new THREE.BufferGeometry();
     const positions = new Float32Array(particleCount * 3);
     const colors = new Float32Array(particleCount * 3);
 
     const cyanColor = new THREE.Color('#00f3ff');
     const purpleColor = new THREE.Color('#9d4edd');
+    const pinkColor = new THREE.Color('#ff007f');
 
     for (let i = 0; i < particleCount; i++) {
-      positions[i * 3] = (Math.random() - 0.5) * 80;
-      positions[i * 3 + 1] = (Math.random() - 0.5) * 80;
-      positions[i * 3 + 2] = (Math.random() - 0.5) * 50;
+      positions[i * 3] = (Math.random() - 0.5) * 90;
+      positions[i * 3 + 1] = (Math.random() - 0.5) * 90;
+      positions[i * 3 + 2] = (Math.random() - 0.5) * 60;
 
-      const mixedColor = Math.random() > 0.5 ? cyanColor : purpleColor;
+      const rVal = Math.random();
+      const mixedColor = rVal > 0.6 ? cyanColor : rVal > 0.3 ? purpleColor : pinkColor;
       colors[i * 3] = mixedColor.r;
       colors[i * 3 + 1] = mixedColor.g;
       colors[i * 3 + 2] = mixedColor.b;
@@ -49,39 +51,61 @@ export default function FuturisticScene() {
     geometry.setAttribute('color', new THREE.BufferAttribute(colors, 3));
 
     const particleMaterial = new THREE.PointsMaterial({
-      size: 0.25,
+      size: 0.3,
       vertexColors: true,
       transparent: true,
-      opacity: 0.75,
+      opacity: 0.85,
       blending: THREE.AdditiveBlending,
     });
 
     const particleSystem = new THREE.Points(geometry, particleMaterial);
     scene.add(particleSystem);
 
-    // Floating 3D Wireframe Icosahedron (AI Core Globe)
-    const icoGeometry = new THREE.IcosahedronGeometry(7, 2);
-    const icoMaterial = new THREE.MeshBasicMaterial({
+    // 3D Torus Knot Geometry (Futuristic Cyber Ring)
+    const torusKnotGeo = new THREE.TorusKnotGeometry(6, 1.2, 120, 16);
+    const torusKnotMat = new THREE.MeshBasicMaterial({
       color: 0x00f3ff,
       wireframe: true,
       transparent: true,
-      opacity: 0.15,
+      opacity: 0.18,
     });
-    const icoMesh = new THREE.Mesh(icoGeometry, icoMaterial);
-    icoMesh.position.set(0, 0, -5);
-    scene.add(icoMesh);
+    const torusKnotMesh = new THREE.Mesh(torusKnotGeo, torusKnotMat);
+    torusKnotMesh.position.set(0, 0, -8);
+    scene.add(torusKnotMesh);
 
-    // Inner glowing core
-    const innerGeometry = new THREE.OctahedronGeometry(4, 0);
-    const innerMaterial = new THREE.MeshBasicMaterial({
+    // Inner Glowing 3D Icosahedron Core
+    const icoGeometry = new THREE.IcosahedronGeometry(4, 1);
+    const icoMaterial = new THREE.MeshBasicMaterial({
       color: 0x9d4edd,
       wireframe: true,
       transparent: true,
-      opacity: 0.3,
+      opacity: 0.25,
     });
-    const innerMesh = new THREE.Mesh(innerGeometry, innerMaterial);
-    innerMesh.position.set(0, 0, -5);
-    scene.add(innerMesh);
+    const icoMesh = new THREE.Mesh(icoGeometry, icoMaterial);
+    icoMesh.position.set(0, 0, -8);
+    scene.add(icoMesh);
+
+    // Floating Cyber Cubes
+    const cubeGroup = new THREE.Group();
+    const cubeGeo = new THREE.BoxGeometry(1.5, 1.5, 1.5);
+    const cubeMat = new THREE.MeshBasicMaterial({
+      color: 0x00f3ff,
+      wireframe: true,
+      transparent: true,
+      opacity: 0.2,
+    });
+
+    for (let c = 0; c < 12; c++) {
+      const cube = new THREE.Mesh(cubeGeo, cubeMat);
+      cube.position.set(
+        (Math.random() - 0.5) * 40,
+        (Math.random() - 0.5) * 30,
+        (Math.random() - 0.5) * 20
+      );
+      cube.rotation.set(Math.random() * Math.PI, Math.random() * Math.PI, 0);
+      cubeGroup.add(cube);
+    }
+    scene.add(cubeGroup);
 
     // Mouse interactive target
     let mouseX = 0;
@@ -116,16 +140,19 @@ export default function FuturisticScene() {
       targetX += (mouseX - targetX) * 0.05;
       targetY += (mouseY - targetY) * 0.05;
 
-      camera.position.x = targetX * 3;
-      camera.position.y = -targetY * 3;
+      camera.position.x = targetX * 4;
+      camera.position.y = -targetY * 4;
       camera.lookAt(scene.position);
 
       // Rotate 3D meshes
-      icoMesh.rotation.x = elapsedTime * 0.1;
-      icoMesh.rotation.y = elapsedTime * 0.15;
+      torusKnotMesh.rotation.x = elapsedTime * 0.15;
+      torusKnotMesh.rotation.y = elapsedTime * 0.2;
 
-      innerMesh.rotation.x = -elapsedTime * 0.2;
-      innerMesh.rotation.y = -elapsedTime * 0.25;
+      icoMesh.rotation.x = -elapsedTime * 0.25;
+      icoMesh.rotation.y = -elapsedTime * 0.3;
+
+      cubeGroup.rotation.y = elapsedTime * 0.08;
+      cubeGroup.rotation.x = Math.sin(elapsedTime * 0.05) * 0.15;
 
       // Particle subtle wave float
       particleSystem.rotation.y = elapsedTime * 0.03;
@@ -146,17 +173,19 @@ export default function FuturisticScene() {
       renderer.dispose();
       geometry.dispose();
       particleMaterial.dispose();
+      torusKnotGeo.dispose();
+      torusKnotMat.dispose();
       icoGeometry.dispose();
       icoMaterial.dispose();
-      innerGeometry.dispose();
-      innerMaterial.dispose();
+      cubeGeo.dispose();
+      cubeMat.dispose();
     };
   }, []);
 
   return (
     <div
       ref={containerRef}
-      className="fixed inset-0 pointer-events-none z-0 overflow-hidden opacity-80"
+      className="fixed inset-0 pointer-events-none z-0 overflow-hidden opacity-85"
       aria-hidden="true"
     />
   );
